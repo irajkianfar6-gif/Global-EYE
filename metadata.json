@@ -1,0 +1,6 @@
+{
+  "name": "OilSense — پلتفرم هوشمند پایش و تحلیل بازار جهانی نفت",
+  "description": "اتاق وضعیت مدیریتی و پلتفرم جامع پایش، اعتبارسنجی و تحلیل بازار جهانی نفت، موجودی‌های EIA، تجزیه شوک‌های قیمت، محک‌زنی پیش‌بینی و ریسک ژئوپلیتیک",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
