@@ -1066,3 +1066,108 @@ export const INITIAL_ALERTS: PlatformAlertItem[] = [
     acknowledged: true,
   },
 ];
+
+// 12-Week Historical Trend for EIA Weekly Stocks (for dynamic Recharts LineChart)
+export interface Eia12WeekTrendPoint {
+  weekLabel: string;
+  dateIso: string;
+  crudeCommercialMb: number;
+  crude5yAvgMb: number;
+  gasolineMb: number;
+  gasoline5yAvgMb: number;
+  distillateMb: number;
+  cushingMb: number;
+  sprMb: number;
+}
+
+export const EIA_12W_HISTORICAL_TREND: Eia12WeekTrendPoint[] = [
+  { weekLabel: 'هفته ۱ (مرداد)', dateIso: '2026-08-07', crudeCommercialMb: 429.4, crude5yAvgMb: 426.8, gasolineMb: 221.2, gasoline5yAvgMb: 223.0, distillateMb: 116.5, cushingMb: 25.8, sprMb: 392.1 },
+  { weekLabel: 'هفته ۲', dateIso: '2026-08-14', crudeCommercialMb: 426.8, crude5yAvgMb: 425.2, gasolineMb: 219.6, gasoline5yAvgMb: 221.5, distillateMb: 115.8, cushingMb: 25.1, sprMb: 392.8 },
+  { weekLabel: 'هفته ۳', dateIso: '2026-08-21', crudeCommercialMb: 424.5, crude5yAvgMb: 423.8, gasolineMb: 218.4, gasoline5yAvgMb: 220.1, distillateMb: 114.9, cushingMb: 24.6, sprMb: 393.6 },
+  { weekLabel: 'هفته ۴ (شهریور)', dateIso: '2026-08-28', crudeCommercialMb: 422.1, crude5yAvgMb: 422.0, gasolineMb: 217.9, gasoline5yAvgMb: 219.0, distillateMb: 114.2, cushingMb: 24.0, sprMb: 394.4 },
+  { weekLabel: 'هفته ۵', dateIso: '2026-09-04', crudeCommercialMb: 420.6, crude5yAvgMb: 420.8, gasolineMb: 216.5, gasoline5yAvgMb: 218.2, distillateMb: 113.6, cushingMb: 23.5, sprMb: 395.2 },
+  { weekLabel: 'هفته ۶', dateIso: '2026-09-11', crudeCommercialMb: 419.2, crude5yAvgMb: 419.9, gasolineMb: 215.1, gasoline5yAvgMb: 217.4, distillateMb: 112.8, cushingMb: 23.1, sprMb: 396.0 },
+  { weekLabel: 'هفته ۷', dateIso: '2026-09-18', crudeCommercialMb: 418.0, crude5yAvgMb: 419.1, gasolineMb: 213.8, gasoline5yAvgMb: 216.6, distillateMb: 112.1, cushingMb: 22.8, sprMb: 396.9 },
+  { weekLabel: 'هفته ۸ (مهر)', dateIso: '2026-09-25', crudeCommercialMb: 417.1, crude5yAvgMb: 418.4, gasolineMb: 212.4, gasoline5yAvgMb: 215.9, distillateMb: 111.5, cushingMb: 22.5, sprMb: 397.7 },
+  { weekLabel: 'هفته ۹', dateIso: '2026-10-02', crudeCommercialMb: 416.3, crude5yAvgMb: 417.9, gasolineMb: 211.2, gasoline5yAvgMb: 215.2, distillateMb: 110.8, cushingMb: 22.2, sprMb: 398.4 },
+  { weekLabel: 'هفته ۱۰', dateIso: '2026-10-09', crudeCommercialMb: 415.6, crude5yAvgMb: 417.4, gasolineMb: 210.0, gasoline5yAvgMb: 214.8, distillateMb: 110.4, cushingMb: 22.0, sprMb: 399.1 },
+  { weekLabel: 'هفته ۱۱', dateIso: '2026-10-16', crudeCommercialMb: 415.0, crude5yAvgMb: 417.0, gasolineMb: 210.5, gasoline5yAvgMb: 214.6, distillateMb: 110.1, cushingMb: 22.1, sprMb: 399.6 },
+  { weekLabel: 'هفته ۱۲ (فعلی)', dateIso: '2026-10-23', crudeCommercialMb: 415.0, crude5yAvgMb: 416.7, gasolineMb: 214.6, gasoline5yAvgMb: 214.5, distillateMb: 111.0, cushingMb: 22.3, sprMb: 400.5 },
+];
+
+// 12-Week Historical Trend for Global Supply-Demand Balance & OPEC+ Production (for dynamic Recharts LineChart)
+export interface Balance12WeekTrendPoint {
+  weekLabel: string;
+  dateIso: string;
+  globalSupplyMbd: number;
+  globalDemandMbd: number;
+  impliedBalanceMbd: number;
+  opecPlusOutputMbd: number;
+  nonOpecOutputMbd: number;
+}
+
+export const BALANCE_12W_HISTORICAL_TREND: Balance12WeekTrendPoint[] = [
+  { weekLabel: 'هفته ۱ (مرداد)', dateIso: '2026-08-07', globalSupplyMbd: 102.6, globalDemandMbd: 103.1, impliedBalanceMbd: -0.5, opecPlusOutputMbd: 40.8, nonOpecOutputMbd: 61.8 },
+  { weekLabel: 'هفته ۲', dateIso: '2026-08-14', globalSupplyMbd: 102.7, globalDemandMbd: 103.2, impliedBalanceMbd: -0.5, opecPlusOutputMbd: 40.8, nonOpecOutputMbd: 61.9 },
+  { weekLabel: 'هفته ۳', dateIso: '2026-08-21', globalSupplyMbd: 102.8, globalDemandMbd: 103.0, impliedBalanceMbd: -0.2, opecPlusOutputMbd: 40.9, nonOpecOutputMbd: 61.9 },
+  { weekLabel: 'هفته ۴ (شهریور)', dateIso: '2026-08-28', globalSupplyMbd: 102.9, globalDemandMbd: 102.8, impliedBalanceMbd: 0.1, opecPlusOutputMbd: 40.9, nonOpecOutputMbd: 62.0 },
+  { weekLabel: 'هفته ۵', dateIso: '2026-09-04', globalSupplyMbd: 103.0, globalDemandMbd: 102.7, impliedBalanceMbd: 0.3, opecPlusOutputMbd: 41.0, nonOpecOutputMbd: 62.0 },
+  { weekLabel: 'هفته ۶', dateIso: '2026-09-11', globalSupplyMbd: 102.8, globalDemandMbd: 102.9, impliedBalanceMbd: -0.1, opecPlusOutputMbd: 40.8, nonOpecOutputMbd: 62.0 },
+  { weekLabel: 'هفته ۷', dateIso: '2026-09-18', globalSupplyMbd: 102.9, globalDemandMbd: 103.1, impliedBalanceMbd: -0.2, opecPlusOutputMbd: 40.9, nonOpecOutputMbd: 62.0 },
+  { weekLabel: 'هفته ۸ (مهر)', dateIso: '2026-09-25', globalSupplyMbd: 103.1, globalDemandMbd: 102.9, impliedBalanceMbd: 0.2, opecPlusOutputMbd: 41.0, nonOpecOutputMbd: 62.1 },
+  { weekLabel: 'هفته ۹', dateIso: '2026-10-02', globalSupplyMbd: 103.2, globalDemandMbd: 102.8, impliedBalanceMbd: 0.4, opecPlusOutputMbd: 41.0, nonOpecOutputMbd: 62.2 },
+  { weekLabel: 'هفته ۱۰', dateIso: '2026-10-09', globalSupplyMbd: 103.3, globalDemandMbd: 102.7, impliedBalanceMbd: 0.6, opecPlusOutputMbd: 41.1, nonOpecOutputMbd: 62.2 },
+  { weekLabel: 'هفته ۱۱', dateIso: '2026-10-16', globalSupplyMbd: 103.3, globalDemandMbd: 102.8, impliedBalanceMbd: 0.5, opecPlusOutputMbd: 41.0, nonOpecOutputMbd: 62.3 },
+  { weekLabel: 'هفته ۱۲ (فعلی)', dateIso: '2026-10-23', globalSupplyMbd: 103.4, globalDemandMbd: 102.8, impliedBalanceMbd: 0.6, opecPlusOutputMbd: 41.1, nonOpecOutputMbd: 62.3 },
+];
+
+// Futures Term Structure Curve (M1 to M12) for `futures-curve-regime` skill
+export interface TermStructurePoint {
+  tenor: string;
+  monthFa: string;
+  brentUsd: number;
+  wtiUsd: number;
+  dubaiUsd: number;
+}
+
+export const FUTURES_TERM_STRUCTURE: TermStructurePoint[] = [
+  { tenor: 'M1', monthFa: 'تحویل ماه ۱', brentUsd: 82.75, wtiUsd: 79.82, dubaiUsd: 80.12 },
+  { tenor: 'M2', monthFa: 'تحویل ماه ۲', brentUsd: 82.10, wtiUsd: 79.25, dubaiUsd: 79.60 },
+  { tenor: 'M3', monthFa: 'تحویل ماه ۳', brentUsd: 81.55, wtiUsd: 78.75, dubaiUsd: 79.10 },
+  { tenor: 'M4', monthFa: 'تحویل ماه ۴', brentUsd: 81.05, wtiUsd: 78.30, dubaiUsd: 78.65 },
+  { tenor: 'M5', monthFa: 'تحویل ماه ۵', brentUsd: 80.60, wtiUsd: 77.90, dubaiUsd: 78.25 },
+  { tenor: 'M6', monthFa: 'تحویل ماه ۶', brentUsd: 80.20, wtiUsd: 77.55, dubaiUsd: 77.90 },
+  { tenor: 'M7', monthFa: 'تحویل ماه ۷', brentUsd: 79.85, wtiUsd: 77.20, dubaiUsd: 77.55 },
+  { tenor: 'M8', monthFa: 'تحویل ماه ۸', brentUsd: 79.55, wtiUsd: 76.90, dubaiUsd: 77.25 },
+  { tenor: 'M9', monthFa: 'تحویل ماه ۹', brentUsd: 79.25, wtiUsd: 76.65, dubaiUsd: 77.00 },
+  { tenor: 'M10', monthFa: 'تحویل ماه ۱۰', brentUsd: 79.00, wtiUsd: 76.40, dubaiUsd: 76.75 },
+  { tenor: 'M11', monthFa: 'تحویل ماه ۱۱', brentUsd: 78.80, wtiUsd: 76.20, dubaiUsd: 76.55 },
+  { tenor: 'M12', monthFa: 'تحویل ماه ۱۲', brentUsd: 78.60, wtiUsd: 76.00, dubaiUsd: 76.35 },
+];
+
+// 12-Week CFTC & ICE COT Managed Money Positioning (`cot-positioning` skill)
+export interface Cot12WeekPoint {
+  weekLabel: string;
+  dateIso: string;
+  brentNetLongK: number;
+  wtiNetLongK: number;
+  gasoilNetLongK: number;
+  brentPriceUsd: number;
+  zScore52w: number;
+}
+
+export const COT_12W_POSITIONING: Cot12WeekPoint[] = [
+  { weekLabel: 'هفته ۱', dateIso: '2026-08-04', brentNetLongK: 142, wtiNetLongK: 168, gasoilNetLongK: 48, brentPriceUsd: 78.9, zScore52w: -0.4 },
+  { weekLabel: 'هفته ۲', dateIso: '2026-08-11', brentNetLongK: 156, wtiNetLongK: 175, gasoilNetLongK: 52, brentPriceUsd: 79.6, zScore52w: -0.1 },
+  { weekLabel: 'هفته ۳', dateIso: '2026-08-18', brentNetLongK: 138, wtiNetLongK: 161, gasoilNetLongK: 44, brentPriceUsd: 78.2, zScore52w: -0.5 },
+  { weekLabel: 'هفته ۴', dateIso: '2026-08-25', brentNetLongK: 164, wtiNetLongK: 184, gasoilNetLongK: 56, brentPriceUsd: 80.4, zScore52w: 0.2 },
+  { weekLabel: 'هفته ۵', dateIso: '2026-09-01', brentNetLongK: 178, wtiNetLongK: 196, gasoilNetLongK: 61, brentPriceUsd: 81.2, zScore52w: 0.5 },
+  { weekLabel: 'هفته ۶', dateIso: '2026-09-08', brentNetLongK: 169, wtiNetLongK: 189, gasoilNetLongK: 58, brentPriceUsd: 80.1, zScore52w: 0.3 },
+  { weekLabel: 'هفته ۷', dateIso: '2026-09-15', brentNetLongK: 152, wtiNetLongK: 174, gasoilNetLongK: 49, brentPriceUsd: 79.4, zScore52w: -0.2 },
+  { weekLabel: 'هفته ۸', dateIso: '2026-09-22', brentNetLongK: 185, wtiNetLongK: 208, gasoilNetLongK: 64, brentPriceUsd: 81.0, zScore52w: 0.7 },
+  { weekLabel: 'هفته ۹', dateIso: '2026-09-29', brentNetLongK: 198, wtiNetLongK: 219, gasoilNetLongK: 69, brentPriceUsd: 81.6, zScore52w: 1.1 },
+  { weekLabel: 'هفته ۱۰', dateIso: '2026-10-06', brentNetLongK: 214, wtiNetLongK: 232, gasoilNetLongK: 74, brentPriceUsd: 82.1, zScore52w: 1.4 },
+  { weekLabel: 'هفته ۱۱', dateIso: '2026-10-13', brentNetLongK: 226, wtiNetLongK: 241, gasoilNetLongK: 78, brentPriceUsd: 82.4, zScore52w: 1.7 },
+  { weekLabel: 'هفته ۱۲', dateIso: '2026-10-20', brentNetLongK: 238, wtiNetLongK: 249, gasoilNetLongK: 82, brentPriceUsd: 82.75, zScore52w: 1.9 },
+];
+

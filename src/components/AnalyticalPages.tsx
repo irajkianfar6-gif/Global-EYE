@@ -2,10 +2,28 @@ import React, { useState } from 'react';
 import {
   Sliders,
   Ship,
+  Flame,
+  TrendingUp,
+  Activity,
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ReferenceLine,
+} from 'recharts';
 import {
   EIA_WPSR_TABLE,
   EIA_26W_TRAJECTORY,
+  EIA_12W_HISTORICAL_TREND,
+  BALANCE_12W_HISTORICAL_TREND,
+  FUTURES_TERM_STRUCTURE,
+  COT_12W_POSITIONING,
   SHOCK_WINDOWS_TABLE,
   SHOCK_TRIANGULATION_ROWS,
   MONTHLY_SHOCK_BARS,
@@ -27,13 +45,14 @@ import {
 
 /**
  * 1. EIA WEEKLY STOCKS SKILL PAGE (`eia-weekly-stocks`)
- * Styled in the Oil Situation Room Warm-Stone + Terracotta + Charcoal palette
+ * Includes Dynamic Recharts 12-Week LineChart + 26W Seasonal Trajectory + WPSR Table
  */
 export const EiaStocksDeepPage: React.FC = () => {
   const [useConsensus, setUseConsensus] = useState<boolean>(false);
   const [expCrude, setExpCrude] = useState<number>(-1.5);
   const [expGasoline, setExpGasoline] = useState<number>(-0.8);
   const [expDistillate, setExpDistillate] = useState<number>(-0.5);
+  const [stockChartSeries, setStockChartSeries] = useState<'crude' | 'gasoline' | 'distillate_cushing' | 'spr'>('crude');
 
   const crudeSignal = evaluateEiaStockSignal({
     wowChangeMb: 0.0,
@@ -82,6 +101,148 @@ export const EiaStocksDeepPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Dynamic 12-Week Recharts LineChart Section */}
+      <div className="bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-sm font-extrabold text-[#1E1D1B]">
+              روند پویا و تعاملی موجودی‌های نفت آمریکا در ۱۲ هفته گذشته (Recharts LineChart · میلیون بشکه)
+            </h3>
+            <p className="text-xs text-stone-500 mt-0.5">
+              مقایسه مستقیم مسیر موجودی واقعی با الگوی فصلی ۵ ساله در ۱۲ هفته منتهی به ۲۰۲۶-۱۰-۲۳
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-1 bg-stone-200/80 p-1 rounded-lg text-xs">
+            {(
+              [
+                { id: 'crude', label: 'نفت خام تجاری و ۵ ساله' },
+                { id: 'gasoline', label: 'بنزین کل و ۵ ساله' },
+                { id: 'distillate_cushing', label: 'تقطیری و کاشینگ' },
+                { id: 'spr', label: 'ذخایر استراتژیک (SPR)' },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setStockChartSeries(tab.id)}
+                className={`px-3 py-1 rounded-md font-bold transition-colors whitespace-nowrap ${
+                  stockChartSeries === tab.id
+                    ? 'bg-[#B83E16] text-white'
+                    : 'text-stone-700 hover:text-stone-950'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="h-64 w-full" dir="ltr">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={EIA_12W_HISTORICAL_TREND} margin={{ top: 10, right: 24, left: 8, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#D6D3CD" />
+              <XAxis
+                dataKey="weekLabel"
+                tick={{ fill: '#57534E', fontSize: 11 }}
+                stroke="#A8A29E"
+              />
+              <YAxis
+                domain={['auto', 'auto']}
+                tick={{ fill: '#57534E', fontSize: 11 }}
+                stroke="#A8A29E"
+                unit=" mb"
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#22211F',
+                  borderColor: '#44403C',
+                  borderRadius: '10px',
+                  color: '#FAF9F5',
+                  fontSize: '12px',
+                  direction: 'rtl',
+                  textAlign: 'right',
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '6px' }} />
+              {stockChartSeries === 'crude' && (
+                <>
+                  <Line
+                    type="monotone"
+                    dataKey="crudeCommercialMb"
+                    name="نفت خام تجاری ۲۰۲۶ (mb)"
+                    stroke="#B83E16"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#B83E16' }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="crude5yAvgMb"
+                    name="میانگین ۵ ساله (mb)"
+                    stroke="#57534E"
+                    strokeWidth={2}
+                    strokeDasharray="5 4"
+                    dot={{ r: 3, fill: '#57534E' }}
+                  />
+                </>
+              )}
+              {stockChartSeries === 'gasoline' && (
+                <>
+                  <Line
+                    type="monotone"
+                    dataKey="gasolineMb"
+                    name="موجودی بنزین ۲۰۲۶ (mb)"
+                    stroke="#2D8A4E"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#2D8A4E' }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="gasoline5yAvgMb"
+                    name="میانگین ۵ ساله بنزین (mb)"
+                    stroke="#57534E"
+                    strokeWidth={2}
+                    strokeDasharray="5 4"
+                    dot={{ r: 3, fill: '#57534E' }}
+                  />
+                </>
+              )}
+              {stockChartSeries === 'distillate_cushing' && (
+                <>
+                  <Line
+                    type="monotone"
+                    dataKey="distillateMb"
+                    name="موجودی تقطیری/گازوئیل (mb)"
+                    stroke="#D96B27"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#D96B27' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="cushingMb"
+                    name="موجودی کاشینگ (mb)"
+                    stroke="#1E1D1B"
+                    strokeWidth={2.5}
+                    dot={{ r: 3.5, fill: '#1E1D1B' }}
+                  />
+                </>
+              )}
+              {stockChartSeries === 'spr' && (
+                <Line
+                  type="monotone"
+                  dataKey="sprMb"
+                  name="ذخایر استراتژیک SPR (mb)"
+                  stroke="#B83E16"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: '#B83E16' }}
+                />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* Top Row: 26-Week Seasonal Trajectory Chart + Signal Cards & Interactive Consensus */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* 26-Week Chart */}
@@ -89,7 +250,7 @@ export const EiaStocksDeepPage: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div>
               <h3 className="text-sm font-bold">
-                موجودی تجاری نفت خام در برابر میانگین ۵ ساله همان هفته (میلیون بشکه)
+                موجودی تجاری نفت خام در برابر میانگین ۵ ساله در افق ۲۶ هفته‌ای (میلیون بشکه)
               </h3>
               <p className="text-xs text-stone-400 mt-0.5">
                 موجودی در ۲۶ هفته از ۴۴۲٫۰ به ۴۱۵٫۰ رسید و اکنون ۱٫۷ میلیون بشکه زیر میانگین ۵ ساله است.
@@ -117,7 +278,6 @@ export const EiaStocksDeepPage: React.FC = () => {
                 </g>
               );
             })}
-            {/* 5Y Average Dashed Line */}
             <path
               d={
                 'M ' +
@@ -132,7 +292,6 @@ export const EiaStocksDeepPage: React.FC = () => {
               strokeWidth="2"
               strokeDasharray="5 4"
             />
-            {/* 2026 Actual Line */}
             <path
               d={
                 'M ' +
@@ -618,7 +777,6 @@ export const ForecastScenarioDeepPage: React.FC = () => {
 
   return (
     <div className="space-y-4" dir="rtl">
-      {/* Header Banner */}
       <div className="bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="text-xs font-semibold text-stone-500">
@@ -639,7 +797,6 @@ export const ForecastScenarioDeepPage: React.FC = () => {
 
       {/* Row 1: Empirical Fan Chart Table + Diebold-Mariano Scoreboard */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Empirical Fan Chart Quantiles Table */}
         <div className="lg:col-span-5 bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-[#1E1D1B] mb-1">
@@ -783,7 +940,6 @@ export const ForecastScenarioDeepPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          {/* Sliders */}
           <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-3.5 rounded-xl bg-stone-800/80 border border-stone-700">
               <div className="flex justify-between text-xs mb-2">
@@ -874,7 +1030,6 @@ export const ForecastScenarioDeepPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Simulated Outputs */}
           <div className="lg:col-span-5 grid grid-cols-2 gap-3">
             <div className="p-4 rounded-xl bg-stone-900 border border-stone-700">
               <div className="text-xs text-stone-400">قیمت برنت شبیه‌سازی‌شده</div>
@@ -927,9 +1082,11 @@ export const ForecastScenarioDeepPage: React.FC = () => {
 
 /**
  * 4. SUPPLY/DEMAND BALANCE, OPEC+ TRACKER & OSP PAGE (`oil-balance-builder`, `opec-momr-parser`, `osp-tracker`)
+ * Includes Dynamic Recharts 12-Week Supply-Demand Balance LineChart
  */
 export const BalanceOpecDeepPage: React.FC = () => {
   const [osps, setOsps] = useState<OspRow[]>(OSP_TABLE);
+  const [balanceChartMode, setBalanceChartMode] = useState<'supply_demand' | 'balance_opec'>('supply_demand');
   const crack321 = computeCrackSpread321(79.82, 99.4, 106.2);
 
   const handleApproveOsp = (gradeFa: string) => {
@@ -963,6 +1120,117 @@ export const BalanceOpecDeepPage: React.FC = () => {
         <div className="bg-stone-200/70 px-4 py-2 rounded-xl text-left">
           <div className="text-[11px] text-stone-600">کرک اسپرد ۳:۲:۱ (NY Harbor)</div>
           <div className="font-mono-num text-lg font-extrabold text-[#1E1D1B]">${crack321} / bbl</div>
+        </div>
+      </div>
+
+      {/* Dynamic 12-Week Recharts LineChart for Supply-Demand Balance & OPEC+ Output */}
+      <div className="bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-sm font-extrabold text-[#1E1D1B]">
+              روند ۱۲ هفته اخیر تراز عرضه و تقاضای جهانی و تولید اوپک+ (Recharts LineChart · میلیون بشکه در روز)
+            </h3>
+            <p className="text-xs text-stone-500 mt-0.5">
+              پایش هفتگی شکاف عرضه و تقاضای جهانی (مازاد ۰٫۶+ میلیون بشکه در روز در هفته جاری) در کنار جداول پایبندی اعضا
+            </p>
+          </div>
+          <div className="flex items-center gap-1 bg-stone-200/80 p-1 rounded-lg text-xs">
+            <button
+              type="button"
+              onClick={() => setBalanceChartMode('supply_demand')}
+              className={`px-3 py-1 rounded-md font-bold transition-colors ${
+                balanceChartMode === 'supply_demand'
+                  ? 'bg-[#B83E16] text-white'
+                  : 'text-stone-700 hover:text-stone-950'
+              }`}
+            >
+              عرضه کل در برابر تقاضای جهانی
+            </button>
+            <button
+              type="button"
+              onClick={() => setBalanceChartMode('balance_opec')}
+              className={`px-3 py-1 rounded-md font-bold transition-colors ${
+                balanceChartMode === 'balance_opec'
+                  ? 'bg-[#B83E16] text-white'
+                  : 'text-stone-700 hover:text-stone-950'
+              }`}
+            >
+              تراز ضمنی (مازاد/کسری) و تولید اوپک+
+            </button>
+          </div>
+        </div>
+
+        <div className="h-64 w-full" dir="ltr">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={BALANCE_12W_HISTORICAL_TREND} margin={{ top: 10, right: 24, left: 8, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#D6D3CD" />
+              <XAxis
+                dataKey="weekLabel"
+                tick={{ fill: '#57534E', fontSize: 11 }}
+                stroke="#A8A29E"
+              />
+              <YAxis
+                domain={['auto', 'auto']}
+                tick={{ fill: '#57534E', fontSize: 11 }}
+                stroke="#A8A29E"
+                unit=" mb/d"
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#22211F',
+                  borderColor: '#44403C',
+                  borderRadius: '10px',
+                  color: '#FAF9F5',
+                  fontSize: '12px',
+                  direction: 'rtl',
+                  textAlign: 'right',
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '6px' }} />
+              {balanceChartMode === 'supply_demand' ? (
+                <>
+                  <Line
+                    type="monotone"
+                    dataKey="globalSupplyMbd"
+                    name="عرضه جهانی نفت (mb/d)"
+                    stroke="#B83E16"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#B83E16' }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="globalDemandMbd"
+                    name="تقاضای جهانی نفت (mb/d)"
+                    stroke="#2D8A4E"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#2D8A4E' }}
+                    activeDot={{ r: 6 }}
+                  />
+                </>
+              ) : (
+                <>
+                  <ReferenceLine y={0} stroke="#78716C" strokeDasharray="3 3" />
+                  <Line
+                    type="monotone"
+                    dataKey="impliedBalanceMbd"
+                    name="تراز ضمنی بازار (مازاد+ / کسری- mb/d)"
+                    stroke="#B83E16"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#B83E16' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="opecPlusOutputMbd"
+                    name="تولید کل اوپک+ (mb/d)"
+                    stroke="#1E1D1B"
+                    strokeWidth={2.5}
+                    dot={{ r: 3.5, fill: '#1E1D1B' }}
+                  />
+                </>
+              )}
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
@@ -1139,7 +1407,364 @@ export const BalanceOpecDeepPage: React.FC = () => {
 };
 
 /**
- * 5. GEOPOLITICS, CHOKEPOINTS & SHADOW FLEET PAGE (`chokepoint-risk`, `geo-risk-scorer`)
+ * 5. DEDICATED OSP, FUTURES TERM STRUCTURE & REFINERY CRACK SPREAD PAGE (`osp_crack_margins`)
+ * Skills: `osp-tracker`, `crack-spread-margins`, `futures-curve-regime`
+ */
+export const OspCrackMarginsDeepPage: React.FC = () => {
+  const [crudeInput, setCrudeInput] = useState<number>(79.82);
+  const [rbobInput, setRbobInput] = useState<number>(99.4);
+  const [ulsdInput, setUlsdInput] = useState<number>(106.2);
+  const [osps, setOsps] = useState<OspRow[]>(OSP_TABLE);
+
+  const crack321 = computeCrackSpread321(crudeInput, rbobInput, ulsdInput);
+  const gasolineCrack = +(rbobInput - crudeInput).toFixed(2);
+  const distillateCrack = +(ulsdInput - crudeInput).toFixed(2);
+
+  return (
+    <div className="space-y-4" dir="rtl">
+      <div className="bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="text-xs font-semibold text-stone-500">
+            Skills: futures-curve-regime · crack-spread-margins · osp-tracker
+          </div>
+          <h2 className="text-xl font-extrabold text-[#1E1D1B] mt-1">
+            ساختار زمانی منحنی آتی، حاشیه پالایش (Crack Spread) و قیمت‌های رسمی خلیج فارس (OSP)
+          </h2>
+          <p className="text-xs text-stone-600 mt-1">
+            تحلیل شیب بکواردیشن منحنی آتی (M1–M12)، ماشین‌حساب زنده کرک اسپرد ۳:۲:۱ و پایش تفاضل قیمت‌های رسمی فروش به آسیا و اروپا
+          </p>
+        </div>
+        <div className="bg-[#2D8A4E]/15 text-[#2D8A4E] px-4 py-2 rounded-xl text-left">
+          <div className="text-[11px] font-semibold">رژیم منحنی آتی (برنت و WTI)</div>
+          <div className="font-mono-num text-base font-extrabold">Backwardation (+۴٫۱۵$ M1-M12)</div>
+        </div>
+      </div>
+
+      {/* Row 1: Recharts Futures Term Structure Curve + Interactive 3:2:1 Crack Spread Simulator */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="lg:col-span-7 bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs">
+          <div className="mb-3">
+            <h3 className="text-sm font-extrabold text-[#1E1D1B]">
+              منحنی ساختار زمانی بازار آتی (Futures Term Structure · تحویل ماه اول تا دوازدهم)
+            </h3>
+            <p className="text-xs text-stone-500 mt-0.5">
+              شیب نزولی منحنی (بکواردیشن) نشان‌دهنده کمیابی فیزیکی کوتاه‌مدت و بازده مثبت غلتاندن قراردادها (Roll Yield) است
+            </p>
+          </div>
+
+          <div className="h-60 w-full" dir="ltr">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={FUTURES_TERM_STRUCTURE} margin={{ top: 10, right: 20, left: 6, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#D6D3CD" />
+                <XAxis dataKey="tenor" tick={{ fill: '#57534E', fontSize: 11 }} stroke="#A8A29E" />
+                <YAxis domain={[74, 84]} tick={{ fill: '#57534E', fontSize: 11 }} stroke="#A8A29E" unit="$" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#22211F',
+                    borderColor: '#44403C',
+                    borderRadius: '10px',
+                    color: '#FAF9F5',
+                    fontSize: '12px',
+                    direction: 'rtl',
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Line
+                  type="monotone"
+                  dataKey="brentUsd"
+                  name="برنت (ICE Brent $/bbl)"
+                  stroke="#B83E16"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: '#B83E16' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="dubaiUsd"
+                  name="دوبی (Platts Dubai $/bbl)"
+                  stroke="#D96B27"
+                  strokeWidth={2.5}
+                  dot={{ r: 3.5, fill: '#D96B27' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="wtiUsd"
+                  name="WTI (NYMEX $/bbl)"
+                  stroke="#2D8A4E"
+                  strokeWidth={2.5}
+                  dot={{ r: 3.5, fill: '#2D8A4E' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Interactive Crack Spread 3:2:1 Calculator */}
+        <div className="lg:col-span-5 bg-[#22211F] text-white rounded-xl p-5 border border-stone-800 flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-[#E68A56] flex items-center gap-2 mb-1">
+              <Flame className="w-4 h-4" />
+              <span>ماشین‌حساب زنده حاشیه پالایش (3:2:1 Crack Spread)</span>
+            </h3>
+            <p className="text-[11px] text-stone-400 mb-4">
+              فرمول استاندارد: (۲ × بنزین + ۱ × گازوئیل − ۳ × نفت خام) تقسیم بر ۳
+            </p>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-stone-300">قیمت نفت خام خوراک ($/bbl):</span>
+                  <span className="font-mono-num font-bold text-white">${crudeInput}</span>
+                </div>
+                <input
+                  type="range"
+                  min="60"
+                  max="110"
+                  step="0.5"
+                  value={crudeInput}
+                  onChange={(e) => setCrudeInput(Number(e.target.value))}
+                  className="w-full accent-[#E68A56]"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-stone-300">معادل بشکه بنزین RBOB ($/bbl):</span>
+                  <span className="font-mono-num font-bold text-[#2ECC71]">${rbobInput}</span>
+                </div>
+                <input
+                  type="range"
+                  min="75"
+                  max="135"
+                  step="0.5"
+                  value={rbobInput}
+                  onChange={(e) => setRbobInput(Number(e.target.value))}
+                  className="w-full accent-[#E68A56]"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-stone-300">معادل بشکه گازوئیل ULSD ($/bbl):</span>
+                  <span className="font-mono-num font-bold text-[#F2DA63]">${ulsdInput}</span>
+                </div>
+                <input
+                  type="range"
+                  min="80"
+                  max="145"
+                  step="0.5"
+                  value={ulsdInput}
+                  onChange={(e) => setUlsdInput(Number(e.target.value))}
+                  className="w-full accent-[#E68A56]"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 pt-4 mt-4 border-t border-stone-800 text-center">
+            <div className="p-2.5 rounded-lg bg-stone-900 border border-stone-700">
+              <div className="text-[11px] text-stone-400">کرک ۳:۲:۱ کل</div>
+              <div className="font-mono-num text-lg font-extrabold text-[#E68A56] mt-0.5">
+                ${crack321}
+              </div>
+            </div>
+            <div className="p-2.5 rounded-lg bg-stone-900 border border-stone-700">
+              <div className="text-[11px] text-stone-400">کرک بنزین</div>
+              <div className="font-mono-num text-lg font-extrabold text-[#2ECC71] mt-0.5">
+                ${gasolineCrack}
+              </div>
+            </div>
+            <div className="p-2.5 rounded-lg bg-stone-900 border border-stone-700">
+              <div className="text-[11px] text-stone-400">کرک گازوئیل</div>
+              <div className="font-mono-num text-lg font-extrabold text-[#F2DA63] mt-0.5">
+                ${distillateCrack}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* OSP Table */}
+      <div className="bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs">
+        <h3 className="text-sm font-bold text-[#1E1D1B] mb-2">
+          جدول تفاضل قیمت‌های رسمی فروش خلیج فارس (OSP) و ثبت شکست سری ادنوک (نوامبر ۲۰۲۶)
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-right text-xs">
+            <thead>
+              <tr className="text-stone-500 border-b border-stone-300">
+                <th className="pb-2">نفت خام</th>
+                <th className="pb-2">شرکت ملی نفت</th>
+                <th className="pb-2">مرجع قیمت‌گذاری آسیا</th>
+                <th className="pb-2">تفاضل آسیا ($/bbl)</th>
+                <th className="pb-2">تغییر ماهانه</th>
+                <th className="pb-2">تفاضل اروپا</th>
+                <th className="pb-2">وضعیت تأیید</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-200 font-mono-num">
+              {osps.map((o) => (
+                <tr key={o.gradeFa} className="hover:bg-stone-200/40">
+                  <td className="py-2.5 font-sans font-bold text-stone-900">{o.gradeFa}</td>
+                  <td className="py-2.5 font-sans text-stone-700">{o.producerFa}</td>
+                  <td className="py-2.5 font-sans text-stone-600">{o.benchmark}</td>
+                  <td className="py-2.5 font-bold text-stone-900">{formatSignedPersian(o.asiaDiffUsd, 2)}</td>
+                  <td className="py-2.5 text-[#2D8A4E] font-bold">{formatSignedPersian(o.momChangeUsd, 2)}</td>
+                  <td className="py-2.5 text-stone-700">{formatSignedPersian(o.europeDiffUsd, 2)}</td>
+                  <td className="py-2.5 font-sans">
+                    {o.verificationStatus === 'verified' ? (
+                      <span className="text-[#2D8A4E] font-bold">✓ تأییدشده · {o.noteFa}</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOsps((prev) =>
+                            prev.map((x) =>
+                              x.gradeFa === o.gradeFa
+                                ? { ...x, verificationStatus: 'verified', noteFa: 'تأیید انسانی انجام شد' }
+                                : x
+                            )
+                          )
+                        }
+                        className="px-2.5 py-1 rounded-md bg-[#B83E16] text-white text-[11px] font-bold"
+                      >
+                        تأیید انسانی ({o.noteFa})
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * 6. DEDICATED CFTC/ICE COT POSITIONING & MACRO SENTIMENT PAGE (`cot_macro_sentiment`)
+ * Skills: `cot-positioning` + Financial & Macro Drivers
+ */
+export const CotMacroSentimentDeepPage: React.FC = () => {
+  return (
+    <div className="space-y-4" dir="rtl">
+      <div className="bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="text-xs font-semibold text-stone-500">
+            Skill: cot-positioning · منابع: CFTC Disaggregated (WTI 067651) · ICE Futures Europe COT · FRED Macro
+          </div>
+          <h2 className="text-xl font-extrabold text-[#1E1D1B] mt-1">
+            موقعیت معامله‌گران (Managed Money COT)، احساسات بازار و متغیرهای کلان
+          </h2>
+          <p className="text-xs text-stone-600 mt-1">
+            پایش خالص موقعیت خرید صندوق‌ها (Net Long)، شاخص ازدحام ۵۲ هفته‌ای (Z-Score) و متغیرهای کلان (شاخص دلار DXY، نوسان ضمنی OVX و RatingDog PMI چین)
+          </p>
+        </div>
+        <div className="bg-[#D96B27]/15 text-[#B83E16] px-4 py-2 rounded-xl text-left">
+          <div className="text-[11px] font-semibold">امتیاز Z موقعیت خرید ۵۲ هفته‌ای</div>
+          <div className="font-mono-num text-base font-extrabold">+۱٫۹σ (نزدیک به مرز اشباع خرید)</div>
+        </div>
+      </div>
+
+      {/* Dynamic Recharts 12-Week COT Positioning Chart */}
+      <div className="bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs">
+        <div className="mb-3">
+          <h3 className="text-sm font-extrabold text-[#1E1D1B]">
+            روند ۱۲ هفته اخیر خالص موقعیت خرید مدیران سرمایه (Managed Money Net Long · هزار قرارداد)
+          </h3>
+          <p className="text-xs text-stone-500 mt-0.5">
+            افزایش هم‌زمان خالص خرید در برنت (ICE) و WTI (NYMEX) در ۵ هفته اخیر هم‌راستا با رشد ریسک ژئوپلیتیک
+          </p>
+        </div>
+
+        <div className="h-60 w-full" dir="ltr">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={COT_12W_POSITIONING} margin={{ top: 10, right: 20, left: 6, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#D6D3CD" />
+              <XAxis dataKey="weekLabel" tick={{ fill: '#57534E', fontSize: 11 }} stroke="#A8A29E" />
+              <YAxis tick={{ fill: '#57534E', fontSize: 11 }} stroke="#A8A29E" unit="k" />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#22211F',
+                  borderColor: '#44403C',
+                  borderRadius: '10px',
+                  color: '#FAF9F5',
+                  fontSize: '12px',
+                  direction: 'rtl',
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: '12px' }} />
+              <Line
+                type="monotone"
+                dataKey="wtiNetLongK"
+                name="خالص خرید WTI (CFTC · هزار قرارداد)"
+                stroke="#B83E16"
+                strokeWidth={3}
+                dot={{ r: 4, fill: '#B83E16' }}
+              />
+              <Line
+                type="monotone"
+                dataKey="brentNetLongK"
+                name="خالص خرید برنت (ICE · هزار قرارداد)"
+                stroke="#2D8A4E"
+                strokeWidth={3}
+                dot={{ r: 4, fill: '#2D8A4E' }}
+              />
+              <Line
+                type="monotone"
+                dataKey="gasoilNetLongK"
+                name="خالص خرید گازوئیل (ICE · هزار قرارداد)"
+                stroke="#D96B27"
+                strokeWidth={2.5}
+                dot={{ r: 3.5, fill: '#D96B27' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Macro & Financial Indicators Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          {
+            title: 'شاخص دلار آمریکا (DXY / FRED)',
+            val: '۱۰۲٫۴',
+            change: '-۰٫۸٪ هفتگی',
+            note: 'تضعیف ملایم دلار، عامل حمایتی برای تقاضای واردکنندگان نوظهور',
+          },
+          {
+            title: 'شاخص نوسان ضمنی نفت (Cboe OVX)',
+            val: '۳۸٫۶٪',
+            change: '+۴٫۲ واحد',
+            note: 'افزایش تقاضای اختیار خرید (Call Skew) در پی تنش‌های تنگه هرمز',
+          },
+          {
+            title: 'PMI تولیدی چین (RatingDog)',
+            val: '۵۰٫۸',
+            change: '+۰٫۴ واحد',
+            note: 'جایگزین رسمی شاخص Caixin از اوت ۲۰۲۵؛ بازگشت به محدوده انبساطی',
+          },
+          {
+            title: 'سربه‌سر شیل آمریکا (Dallas Fed Survey)',
+            val: '$۶۴٫۰ / bbl',
+            change: 'چاه‌های جدید پرمین',
+            note: 'در قیمت فعلی ۷۹٫۸۲ دلار، حفاری شیل دارای حاشیه سود مثبت ۱۵ دلاری است',
+          },
+        ].map((m) => (
+          <div key={m.title} className="bg-[#FAF9F5] rounded-xl p-4 border border-stone-300/80 shadow-xs">
+            <div className="text-xs font-bold text-stone-600">{m.title}</div>
+            <div className="font-mono-num text-2xl font-extrabold text-[#1E1D1B] mt-1">{m.val}</div>
+            <div className="text-xs font-semibold text-[#B83E16] mt-0.5">{m.change}</div>
+            <p className="text-[11px] text-stone-500 mt-2 leading-relaxed">{m.note}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * 7. GEOPOLITICS, CHOKEPOINTS & SHADOW FLEET PAGE (`chokepoint-risk`, `geo-risk-scorer`)
  */
 export const GeopoliticsChokepointsDeepPage: React.FC = () => {
   return (

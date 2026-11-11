@@ -269,3 +269,46 @@ export function simulateMarketScenario(params: {
     },
   };
 }
+
+export interface RealtimeBenchmarkQuote {
+  id: 'wti' | 'brent' | 'dubai';
+  code: 'WTI' | 'BRENT' | 'DUBAI';
+  nameEn: string;
+  nameFa: string;
+  price: number;
+  openPrice: number;
+  changeUsd: number;
+  changePct: number;
+  direction: 'up' | 'down' | 'flat';
+  lastTickDirection: 'up' | 'down' | 'flat';
+  lastTickDelta: number;
+}
+
+/**
+ * Updates a benchmark oil quote with a real-time price tick delta (in USD/bbl)
+ * and calculates session change, percentage change, and up/down directional indicators.
+ */
+export function computeRealtimeBenchmarkTick(
+  quote: RealtimeBenchmarkQuote,
+  deltaUsd: number
+): RealtimeBenchmarkQuote {
+  const roundedDelta = Number(deltaUsd.toFixed(2));
+  const newPrice = Number(Math.max(20, quote.price + roundedDelta).toFixed(2));
+  const changeUsd = Number((newPrice - quote.openPrice).toFixed(2));
+  const changePct = Number(((changeUsd / quote.openPrice) * 100).toFixed(2));
+  const direction: 'up' | 'down' | 'flat' =
+    changeUsd > 0 ? 'up' : changeUsd < 0 ? 'down' : 'flat';
+  const lastTickDirection: 'up' | 'down' | 'flat' =
+    roundedDelta > 0 ? 'up' : roundedDelta < 0 ? 'down' : 'flat';
+
+  return {
+    ...quote,
+    price: newPrice,
+    changeUsd,
+    changePct,
+    direction,
+    lastTickDirection,
+    lastTickDelta: roundedDelta,
+  };
+}
+

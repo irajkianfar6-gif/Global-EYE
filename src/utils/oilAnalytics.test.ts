@@ -10,6 +10,8 @@ import {
   computeCrackSpread321,
   computeDataQualityScore,
   simulateMarketScenario,
+  computeRealtimeBenchmarkTick,
+  RealtimeBenchmarkQuote,
 } from './oilAnalytics';
 
 test('toPersianDigits converts ASCII digits to Persian numerals', () => {
@@ -127,3 +129,32 @@ test('simulateMarketScenario calculates price, balance, and revenue impact', () 
   assert.equal(sim.newBalanceMbd, -1.4);
   assert.ok(sim.revenueDeltaB > 0);
 });
+
+test('computeRealtimeBenchmarkTick updates price, changePct, and up/down directional indicators', () => {
+  const baseQuote: RealtimeBenchmarkQuote = {
+    id: 'wti',
+    code: 'WTI',
+    nameEn: 'WTI',
+    nameFa: 'نفت WTI',
+    price: 79.82,
+    openPrice: 78.89,
+    changeUsd: 0.93,
+    changePct: 1.18,
+    direction: 'up',
+    lastTickDirection: 'up',
+    lastTickDelta: 0.05,
+  };
+
+  const tickedUp = computeRealtimeBenchmarkTick(baseQuote, 0.18);
+  assert.equal(tickedUp.price, 80.0);
+  assert.equal(tickedUp.changeUsd, 1.11);
+  assert.equal(tickedUp.direction, 'up');
+  assert.equal(tickedUp.lastTickDirection, 'up');
+
+  const tickedDown = computeRealtimeBenchmarkTick(tickedUp, -1.5);
+  assert.equal(tickedDown.price, 78.5);
+  assert.equal(tickedDown.changeUsd, -0.39);
+  assert.equal(tickedDown.direction, 'down');
+  assert.equal(tickedDown.lastTickDirection, 'down');
+});
+

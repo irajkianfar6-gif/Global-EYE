@@ -36,6 +36,8 @@ import {
   ForecastScenarioDeepPage,
   BalanceOpecDeepPage,
   GeopoliticsChokepointsDeepPage,
+  OspCrackMarginsDeepPage,
+  CotMacroSentimentDeepPage,
 } from './components/AnalyticalPages';
 import {
   ReportsBriefsDeepPage,
@@ -47,6 +49,7 @@ import {
   RegionalCallout,
 } from './components/SituationRoomMap';
 import { SituationRoomRightPanel } from './components/SituationRoomRightPanel';
+import { RealtimePriceTicker } from './components/RealtimePriceTicker';
 import {
   INITIAL_ALERTS,
   EXECUTIVE_FOUR_QUESTIONS,
@@ -132,10 +135,10 @@ export default function App() {
     },
     {
       id: 'rail-osp',
-      labelFa: 'قیمت‌های رسمی فروش خلیج فارس (OSP) و حاشیه پالایش',
+      labelFa: 'منحنی آتی، قیمت‌های رسمی فروش خلیج فارس (OSP) و حاشیه پالایش',
       icon: Building2,
-      isActive: false,
-      onClick: () => setActivePage('balance_opec'),
+      isActive: activePage === 'osp_crack_margins',
+      onClick: () => setActivePage('osp_crack_margins'),
     },
     {
       id: 'rail-geo',
@@ -160,10 +163,10 @@ export default function App() {
     },
     {
       id: 'rail-reconcile',
-      labelFa: 'تطبیق بین‌منبعی (IEA / OPEC / EIA)',
+      labelFa: 'پوزیشن‌گیری پول هوشمند (COT) و متغیرهای کلان مالی',
       icon: ArrowLeftRight,
-      isActive: false,
-      onClick: () => setActivePage('balance_opec'),
+      isActive: activePage === 'cot_macro_sentiment',
+      onClick: () => setActivePage('cot_macro_sentiment'),
     },
     {
       id: 'rail-sources',
@@ -308,21 +311,29 @@ export default function App() {
         ) : (
           /* Full-Screen Scrollable Deep-Dive View in the same Warm-Stone & Terracotta aesthetic */
           <div className="w-full h-full overflow-y-auto p-5 space-y-4" dir="rtl">
-            {/* Sticky Deep-Dive Subheader */}
-            <div className="sticky top-0 z-20 bg-[#FAF9F5]/95 backdrop-blur-md rounded-xl px-4 py-3 border border-stone-300/90 shadow-sm flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setActivePage('cockpit')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#B83E16] hover:bg-[#9E3310] text-white text-xs font-bold transition-colors"
-                >
-                  <ArrowRight className="w-3.5 h-3.5" />
-                  <span>بازگشت به نقشه تمام‌صفحه (Oil Situation Room)</span>
-                </button>
-                <span className="text-stone-300">|</span>
-                <span className="text-sm font-extrabold text-[#1E1D1B]">
-                  میز کار تخصصی اتاق وضعیت نفت
-                </span>
+            {/* Sticky Deep-Dive Main Navigation Bar */}
+            <header className="sticky top-0 z-20 bg-[#FAF9F5]/95 backdrop-blur-md rounded-xl px-4 py-3 border border-stone-300/90 shadow-sm space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setActivePage('cockpit')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#B83E16] hover:bg-[#9E3310] text-white text-xs font-bold transition-colors"
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>بازگشت به نقشه تمام‌صفحه (Oil Situation Room)</span>
+                  </button>
+                  <span className="text-stone-300">|</span>
+                  <span className="text-sm font-extrabold text-[#1E1D1B]">
+                    میز کار تخصصی اتاق وضعیت نفت
+                  </span>
+                </div>
+
+                {/* Top-Right Real-Time Price Ticker (WTI, Brent, Dubai) */}
+                <RealtimePriceTicker
+                  compact
+                  onSelectBenchmark={() => setActivePage('osp_crack_margins')}
+                />
               </div>
 
               {/* Module Quick Switcher Tabs */}
@@ -333,6 +344,8 @@ export default function App() {
                     { id: 'shock_decomposition', label: 'تجزیه شوک‌ها' },
                     { id: 'forecast_scenario', label: 'پیش‌بینی و سناریو' },
                     { id: 'balance_opec', label: 'تراز و اوپک+' },
+                    { id: 'osp_crack_margins', label: 'منحنی آتی، OSP و کرک' },
+                    { id: 'cot_macro_sentiment', label: 'COT و کلان مالی' },
                     { id: 'geopolitics', label: 'ریسک و گلوگاه‌ها' },
                     { id: 'reports_briefs', label: 'بریف‌های فارسی' },
                     { id: 'data_governance', label: '۲۵۶ منبع داده' },
@@ -353,13 +366,15 @@ export default function App() {
                   </button>
                 ))}
               </div>
-            </div>
+            </header>
 
             {/* Active Deep-Dive Content */}
             {activePage === 'eia_stocks' && <EiaStocksDeepPage />}
             {activePage === 'shock_decomposition' && <ShockDecompositionDeepPage />}
             {activePage === 'forecast_scenario' && <ForecastScenarioDeepPage />}
             {activePage === 'balance_opec' && <BalanceOpecDeepPage />}
+            {activePage === 'osp_crack_margins' && <OspCrackMarginsDeepPage />}
+            {activePage === 'cot_macro_sentiment' && <CotMacroSentimentDeepPage />}
             {activePage === 'geopolitics' && <GeopoliticsChokepointsDeepPage />}
             {activePage === 'reports_briefs' && <ReportsBriefsDeepPage />}
             {activePage === 'data_governance' && <DataGovernanceDeepPage />}

@@ -41,6 +41,8 @@ export type DeepPageId =
   | 'shock_decomposition'
   | 'forecast_scenario'
   | 'balance_opec'
+  | 'osp_crack_margins'
+  | 'cot_macro_sentiment'
   | 'geopolitics'
   | 'reports_briefs'
   | 'data_governance';
