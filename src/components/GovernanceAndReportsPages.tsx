@@ -3,18 +3,35 @@ import {
   Search,
   Copy,
   Check,
+  GitCommit,
+  FileCheck2,
+  Calendar,
+  Database,
 } from 'lucide-react';
 import {
   WAVE1_CONNECTORS,
   DATA_SOURCES_20_CATEGORIES,
 } from '../data/platformData';
 import { computeDataQualityScore, toPersianDigits } from '../utils/oilAnalytics';
+import {
+  HitlVerificationQueuePanel,
+  InteractiveReleaseCalendarPanel,
+} from './GovernanceAndImpactModules';
+import { DeepPageId } from './CockpitViews';
+
+interface GovernanceReportsProps {
+  onInspectLineage?: (seriesKey?: string) => void;
+  onNavigateModule?: (page: DeepPageId) => void;
+}
 
 /**
  * 6. EXECUTIVE BRIEFS & REPORTS PAGE (`executive-oil-brief-fa`)
  * Styled in the Oil Situation Room Warm-Stone + Terracotta + Charcoal palette
  */
-export const ReportsBriefsDeepPage: React.FC = () => {
+export const ReportsBriefsDeepPage: React.FC<GovernanceReportsProps> = ({
+  onInspectLineage,
+  onNavigateModule,
+}) => {
   const [selectedBrief, setSelectedBrief] = useState<'combined' | 'wpsr' | 'shock' | 'forecast'>('combined');
   const [copied, setCopied] = useState(false);
 
@@ -157,6 +174,16 @@ export const ReportsBriefsDeepPage: React.FC = () => {
             ))}
           </div>
 
+          {onNavigateModule && (
+            <button
+              type="button"
+              onClick={() => onNavigateModule('live_wave1_debate')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#B83E16] text-white text-xs font-bold hover:bg-[#9E3310] transition-colors"
+            >
+              <span>تولید گزارش زنده هیئت‌مدیره و اتاق مناظره (gpt-6-luna) ←</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleCopyBrief}
@@ -175,9 +202,14 @@ export const ReportsBriefsDeepPage: React.FC = () => {
             <h3 className="text-lg font-extrabold text-[#1E1D1B]">{active.titleFa}</h3>
             <p className="font-mono-num text-xs text-stone-500 mt-1">{active.skillName}</p>
           </div>
-          <span className="text-xs font-bold text-[#2D8A4E]">
-            ردیابی ۱۰۰٪ اعداد تا فایل JSON
-          </span>
+          <button
+            type="button"
+            onClick={() => onInspectLineage?.('eia.wpsr.crude_stocks')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2D8A4E]/15 hover:bg-[#2D8A4E]/25 text-[#2D8A4E] text-xs font-extrabold transition-colors"
+          >
+            <GitCommit className="w-3.5 h-3.5" />
+            <span>ردیابی ۱۰۰٪ اعداد تا فایل خام (Lineage & Vintage)</span>
+          </button>
         </div>
 
         {/* 5-Second Callout */}
@@ -191,13 +223,14 @@ export const ReportsBriefsDeepPage: React.FC = () => {
         {/* 30-Second Table */}
         <div>
           <h4 className="text-sm font-extrabold text-[#1E1D1B] mb-3">
-            در ۳۰ ثانیه: جدول اعداد کلیدی و ارزیابی
+            در ۳۰ ثانیه: جدول اعداد کلیدی و ارزیابی (روی هر کارت برای ردیابی منبع خام کلیک کنید)
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {active.sec30Rows.map((r) => (
               <div
                 key={r.label}
-                className="p-3.5 rounded-lg bg-stone-100 border border-stone-200/80 flex items-center justify-between gap-3"
+                onClick={() => onInspectLineage?.('eia.wpsr.crude_stocks')}
+                className="p-3.5 rounded-lg bg-stone-100 hover:bg-stone-200/70 border border-stone-200/80 flex items-center justify-between gap-3 cursor-pointer transition-colors"
               >
                 <div>
                   <div className="text-xs font-bold text-stone-800">{r.label}</div>
@@ -238,9 +271,15 @@ export const ReportsBriefsDeepPage: React.FC = () => {
 };
 
 /**
- * 7. DATA SOURCES CATALOG (256 SOURCES), WAVE 1 PIPELINE & QUALITY GATES PAGE
+ * 7. DATA SOURCES CATALOG (256 SOURCES), WAVE 1 PIPELINE, HITL QUEUE & TEHRAN/NY RELEASE CALENDAR PAGE
  */
-export const DataGovernanceDeepPage: React.FC = () => {
+export const DataGovernanceDeepPage: React.FC<GovernanceReportsProps> = ({
+  onInspectLineage,
+  onNavigateModule,
+}) => {
+  const [activeGovSection, setActiveGovSection] = useState<
+    'all' | 'hitl_queue' | 'release_calendar' | 'catalog_256'
+  >('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [waveFilter, setWaveFilter] = useState<string>('ALL');
   const [tierInput, setTierInput] = useState<1 | 2 | 3>(1);
@@ -265,24 +304,65 @@ export const DataGovernanceDeepPage: React.FC = () => {
     return matchesWave && matchesSearch;
   });
 
+  const mapSourceToSeriesKey = (sourceId: string): string => {
+    if (sourceId === 'gulf_osps') return 'adnoc.osp.murban_asia';
+    if (sourceId === 'opec_momr') return 'opec.momr.iran_secondary_prod';
+    if (sourceId === 'fred_macro') return 'kilian.svar.precautionary_demand_12m';
+    return 'eia.wpsr.crude_stocks';
+  };
+
   return (
     <div className="space-y-4" dir="rtl">
-      {/* Architecture 7-Layer Summary Banner */}
-      <div className="bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+      {/* Architecture 7-Layer Summary Banner + Sub-Navigation */}
+      <div className="bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="text-xs font-semibold text-stone-500">
               معماری ۷ لایه پلتفرم + لایه حاکمیت · جدول واحد مشاهدات (observation) با تاریخ انتشار (Vintage)
             </div>
             <h2 className="text-xl font-extrabold text-[#1E1D1B] mt-1">
-              کاتالوگ ۲۵۶ منبع جهانی، نقشه اتصال موج ۱ و ۵ لایه کنترل کیفیت
+              مرکز حاکمیت داده: صف تأیید انسانی (HITL)، تقویم انتشار تهران/نیویورک و کاتالوگ ۲۵۶ منبع
             </h2>
           </div>
-          <div className="text-left">
-            <span className="text-xs font-bold text-white bg-[#B83E16] px-3 py-1.5 rounded-lg">
-              ۲۵۶ منبع یکتا در ۲۰ دسته تخصصی
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onInspectLineage?.('eia.wpsr.crude_stocks')}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#22211F] hover:bg-stone-800 text-[#F2DA63] text-xs font-extrabold transition-colors"
+            >
+              <GitCommit className="w-4 h-4" />
+              <span>باز کردن بازرس ردیابی عدد تا منبع خام (Lineage & Vintage)</span>
+            </button>
           </div>
+        </div>
+
+        {/* Sub-section Switcher */}
+        <div className="flex flex-wrap items-center gap-1.5 bg-stone-200/70 p-1 rounded-lg text-xs">
+          {(
+            [
+              { id: 'all', label: 'نمای یکپارچه همه ابزارهای حاکمیت داده', icon: Database },
+              { id: 'hitl_queue', label: 'صف تأیید انسانی (OSP / استخراج PDF / هشدار سطح ۳)', icon: FileCheck2 },
+              { id: 'release_calendar', label: 'تقویم تعاملی انتشارها (تهران / نیویورک)', icon: Calendar },
+              { id: 'catalog_256', label: 'کاتالوگ ۲۵۶ منبع و ۱۲ کانکتور موج ۱', icon: Search },
+            ] as const
+          ).map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveGovSection(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-bold transition-colors ${
+                  activeGovSection === tab.id
+                    ? 'bg-[#B83E16] text-white'
+                    : 'text-stone-700 hover:text-stone-950'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* 7 Layers Pipeline Strip */}
@@ -290,8 +370,8 @@ export const DataGovernanceDeepPage: React.FC = () => {
           {[
             { num: '۱', title: 'منابع داده', sub: '۲۵۶ منبع (سطح ۱ تا ۳)' },
             { num: '۲', title: 'اتصال و جمع‌آوری', sub: '۴ الگو + هش SHA-256' },
-            { num: '۳', title: 'اعتبارسنجی', sub: '۵ لایه کنترل + امتیاز کیفیت' },
-            { num: '۴', title: 'انبار داده', sub: 'Parquet + TimescaleDB' },
+            { num: '۳', title: 'اعتبارسنجی', sub: '۵ لایه کنترل + صف HITL' },
+            { num: '۴', title: 'انبار داده', sub: 'Parquet + Vintage Ledger' },
             { num: '۵', title: 'موتور تحلیل', sub: '۸ ماژول P0-P2 + هشدار' },
             { num: '۶', title: 'عامل‌ها و Skillها', sub: '۳ ساخته + ۱۲ در صف + MCP' },
             { num: '۷', title: 'لایه ارائه', sub: 'کاکپیت ۵s / ۳۰s / ۵m' },
@@ -306,57 +386,83 @@ export const DataGovernanceDeepPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Wave 1 Connectors Table (12 Free Official Sources) */}
-      <div className="bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <div>
-            <h3 className="text-sm font-bold text-[#1E1D1B]">
-              نقشه اتصال ۱۲ منبع رسمی موج ۱ (زمان‌بندی تقویم‌محور به وقت نیویورک و تهران)
-            </h3>
-            <p className="text-[11px] text-stone-500">
-              چهار الگوی استاندارد اتصال: A (API رسمی) · B (فایل XLSX/CSV) · C (استخراج PDF/وب با کنترل جمع سطرها) · D (خبر + LLM + تأیید انسانی)
-            </p>
+      {/* SECTION A: Human-in-the-Loop Verification Queue */}
+      {(activeGovSection === 'all' || activeGovSection === 'hitl_queue') && (
+        <HitlVerificationQueuePanel
+          onInspectLineage={(seriesKey) => onInspectLineage?.(seriesKey)}
+        />
+      )}
+
+      {/* SECTION B: Interactive Tehran / New York Release & Catalyst Calendar */}
+      {(activeGovSection === 'all' || activeGovSection === 'release_calendar') && (
+        <InteractiveReleaseCalendarPanel
+          onNavigateModule={onNavigateModule}
+          onInspectLineage={(seriesKey) => onInspectLineage?.(seriesKey)}
+        />
+      )}
+
+      {/* SECTION C: Wave 1 Connectors Table (12 Free Official Sources) */}
+      {(activeGovSection === 'all' || activeGovSection === 'catalog_256') && (
+        <div className="bg-[#FAF9F5] rounded-xl p-5 border border-stone-300/80 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 className="text-sm font-bold text-[#1E1D1B]">
+                نقشه اتصال ۱۲ منبع رسمی موج ۱ (زمان‌بندی تقویم‌محور به وقت نیویورک و تهران)
+              </h3>
+              <p className="text-[11px] text-stone-500">
+                چهار الگوی استاندارد اتصال: A (API رسمی) · B (فایل XLSX/CSV) · C (استخراج PDF/وب با کنترل جمع سطرها) · D (خبر + LLM + تأیید انسانی)
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-xs">
+              <thead>
+                <tr className="text-stone-500 border-b border-stone-300">
+                  <th className="pb-2">شناسه و نام منبع</th>
+                  <th className="pb-2">الگوی اتصال</th>
+                  <th className="pb-2">تقویم انتشار (تهران)</th>
+                  <th className="pb-2">ماژول مصرف‌کننده</th>
+                  <th className="pb-2">جفت تطبیق بین‌منبعی</th>
+                  <th className="pb-2">امتیاز کیفیت</th>
+                  <th className="pb-2">دروازه / حسابرسی</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-200">
+                {WAVE1_CONNECTORS.map((c) => (
+                  <tr key={c.sourceId} className="hover:bg-stone-200/40">
+                    <td className="py-2.5 font-bold text-stone-900">
+                      {c.nameFa}{' '}
+                      <span className="font-mono-num text-[10px] text-stone-400">({c.sourceId})</span>
+                    </td>
+                    <td className="py-2.5 text-stone-700 font-medium">{c.pattern}</td>
+                    <td className="py-2.5 text-stone-600">{c.scheduleTehran}</td>
+                    <td className="py-2.5 text-stone-700">{c.moduleFa}</td>
+                    <td className="py-2.5 text-stone-500">{c.crossCheckPair}</td>
+                    <td className="py-2.5 font-mono-num font-bold text-stone-900">
+                      {toPersianDigits(c.qualityScore)}/۱۰۰
+                    </td>
+                    <td className="py-2.5 font-mono-num font-bold">
+                      <div className="flex items-center gap-2">
+                        <span className={c.gateStatus === 'OK' ? 'text-[#2D8A4E]' : 'text-[#D96B27]'}>
+                          {c.gateStatus}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onInspectLineage?.(mapSourceToSeriesKey(c.sourceId))}
+                          className="px-2 py-0.5 rounded bg-stone-200 hover:bg-stone-300 text-stone-800 text-[10px] font-bold"
+                        >
+                          Lineage
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-right text-xs">
-            <thead>
-              <tr className="text-stone-500 border-b border-stone-300">
-                <th className="pb-2">شناسه و نام منبع</th>
-                <th className="pb-2">الگوی اتصال</th>
-                <th className="pb-2">تقویم انتشار (تهران)</th>
-                <th className="pb-2">ماژول مصرف‌کننده</th>
-                <th className="pb-2">جفت تطبیق بین‌منبعی</th>
-                <th className="pb-2">امتیاز کیفیت</th>
-                <th className="pb-2">دروازه</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-200">
-              {WAVE1_CONNECTORS.map((c) => (
-                <tr key={c.sourceId} className="hover:bg-stone-200/40">
-                  <td className="py-2.5 font-bold text-stone-900">
-                    {c.nameFa}{' '}
-                    <span className="font-mono-num text-[10px] text-stone-400">({c.sourceId})</span>
-                  </td>
-                  <td className="py-2.5 text-stone-700 font-medium">{c.pattern}</td>
-                  <td className="py-2.5 text-stone-600">{c.scheduleTehran}</td>
-                  <td className="py-2.5 text-stone-700">{c.moduleFa}</td>
-                  <td className="py-2.5 text-stone-500">{c.crossCheckPair}</td>
-                  <td className="py-2.5 font-mono-num font-bold text-stone-900">
-                    {toPersianDigits(c.qualityScore)}/۱۰۰
-                  </td>
-                  <td className="py-2.5 font-mono-num font-bold">
-                    <span className={c.gateStatus === 'OK' ? 'text-[#2D8A4E]' : 'text-[#D96B27]'}>
-                      {c.gateStatus}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
 
       {/* Interactive 20-Category (256 Sources) Explorer + Data Quality Score Calculator */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">

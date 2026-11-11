@@ -80,6 +80,7 @@ export const REGIONAL_CALLOUTS: RegionalCallout[] = [
 
 interface SituationRoomMapProps {
   onNavigateModule: (page: DeepPageId) => void;
+  onInspectLineage?: (seriesKey?: string) => void;
   onSelectRegion?: (region: RegionalCallout) => void;
   selectedRegionId: string | null;
   searchQuery: string;
@@ -92,6 +93,7 @@ interface SituationRoomMapProps {
 
 export const SituationRoomMap: React.FC<SituationRoomMapProps> = ({
   onNavigateModule,
+  onInspectLineage,
   onSelectRegion,
   selectedRegionId,
   searchQuery,
@@ -372,13 +374,24 @@ export const SituationRoomMap: React.FC<SituationRoomMapProps> = ({
         >
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-[20px] font-extrabold text-[#1E1D1B]">اعداد کلیدی</h2>
-            <button
-              type="button"
-              onClick={() => onNavigateModule('eia_stocks')}
-              className="text-[11px] font-bold text-[#B83E16] hover:underline"
-            >
-              WPSR مشاهده گزارش کامل →
-            </button>
+            <div className="flex items-center gap-3">
+              {onInspectLineage && (
+                <button
+                  type="button"
+                  onClick={() => onInspectLineage('eia.wpsr.crude_stocks')}
+                  className="text-[11px] font-bold text-[#2D8A4E] hover:underline bg-[#2D8A4E]/10 px-2 py-0.5 rounded"
+                >
+                  ردیابی تا منبع خام (Lineage & Vintage)
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => onNavigateModule('eia_stocks')}
+                className="text-[11px] font-bold text-[#B83E16] hover:underline"
+              >
+                WPSR مشاهده گزارش کامل →
+              </button>
+            </div>
           </div>
 
           <table className="w-full text-left text-[13px] border-collapse">
@@ -392,7 +405,11 @@ export const SituationRoomMap: React.FC<SituationRoomMapProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-200/80 text-[#1E1D1B]">
-              <tr className="hover:bg-stone-200/40 transition-colors">
+              <tr
+                onClick={() => onInspectLineage?.('eia.wpsr.crude_stocks')}
+                title="کلیک برای ردیابی عدد تا منبع خام و تاریخچه بازنگری‌ها"
+                className="hover:bg-stone-200/60 transition-colors cursor-pointer"
+              >
                 <td className="py-1.5 font-semibold">نفت خام تجاری</td>
                 <td className="py-1.5 text-center font-mono-num font-semibold">۴۱۵.۰</td>
                 <td className="py-1.5 text-center font-mono-num text-[#2D8A4E] font-medium">
@@ -405,7 +422,11 @@ export const SituationRoomMap: React.FC<SituationRoomMapProps> = ({
                   -1.3 mb
                 </td>
               </tr>
-              <tr className="hover:bg-stone-200/40 transition-colors">
+              <tr
+                onClick={() => onInspectLineage?.('eia.wpsr.crude_stocks')}
+                title="کلیک برای ردیابی عدد تا منبع خام"
+                className="hover:bg-stone-200/60 transition-colors cursor-pointer"
+              >
                 <td className="py-1.5 font-semibold">کاشینگ</td>
                 <td className="py-1.5 text-center font-mono-num font-semibold">۲۲.۳</td>
                 <td className="py-1.5 text-center font-mono-num text-stone-400">
@@ -418,7 +439,11 @@ export const SituationRoomMap: React.FC<SituationRoomMapProps> = ({
                   -0.7 mb
                 </td>
               </tr>
-              <tr className="hover:bg-stone-200/40 transition-colors">
+              <tr
+                onClick={() => onInspectLineage?.('eia.wpsr.gasoline_stocks')}
+                title="کلیک برای ردیابی موجودی بنزین تا منبع خام"
+                className="hover:bg-stone-200/60 transition-colors cursor-pointer"
+              >
                 <td className="py-1.5 font-semibold">بنزین</td>
                 <td className="py-1.5 text-center font-mono-num font-semibold">۲۱۴.۶</td>
                 <td className="py-1.5 text-center font-mono-num text-[#2D8A4E] font-medium">

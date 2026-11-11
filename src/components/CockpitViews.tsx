@@ -44,6 +44,8 @@ export type DeepPageId =
   | 'osp_crack_margins'
   | 'cot_macro_sentiment'
   | 'geopolitics'
+  | 'org_impact'
+  | 'live_wave1_debate'
   | 'reports_briefs'
   | 'data_governance';
 

@@ -7,11 +7,13 @@ import { toPersianDigits } from '../utils/oilAnalytics';
 interface SituationRoomRightPanelProps {
   onNavigateModule: (page: DeepPageId) => void;
   onOpenQuestionModal: (questionId: string) => void;
+  onInspectLineage?: (seriesKey?: string) => void;
 }
 
 export const SituationRoomRightPanel: React.FC<SituationRoomRightPanelProps> = ({
   onNavigateModule,
   onOpenQuestionModal,
+  onInspectLineage,
 }) => {
   const [quoteMode, setQuoteMode] = useState<'reference' | 'live'>('reference');
   const [selectedHorizon, setSelectedHorizon] = useState<'1m' | '3m' | '6m' | '12m'>('1m');
@@ -158,6 +160,24 @@ export const SituationRoomRightPanel: React.FC<SituationRoomRightPanelProps> = (
               پیش‌بینی ۳ ماهه ۷۸.۲ دلار؛ مدل تاییدشده
             </p>
           </div>
+
+          {/* Card 4: ۴. برای ما چه معنایی دارد؟ (اثر بر سازمان و خالص صادرات) */}
+          <div
+            onClick={() => onNavigateModule('org_impact')}
+            className="rounded-xl bg-[#1E1D1B]/25 hover:bg-[#1E1D1B]/35 border border-white/25 px-4 py-2.5 cursor-pointer transition-all flex items-center justify-between"
+          >
+            <div>
+              <span className="text-[14px] font-extrabold text-[#F2DA63] block">
+                ۴. برای ما چه معنایی دارد؟ (اثر بر سازمان)
+              </span>
+              <span className="text-[12px] text-white/95">
+                خالص دریافتی FOB: ۷۵٫۰$ · مازاد بودجه و پوشش ریسک ←
+              </span>
+            </div>
+            <span className="px-2 py-0.5 rounded bg-[#F2DA63] text-[#1E1D1B] text-[10px] font-extrabold shrink-0">
+              محاسبه‌گر
+            </span>
+          </div>
         </div>
       </div>
 
@@ -250,18 +270,38 @@ export const SituationRoomRightPanel: React.FC<SituationRoomRightPanelProps> = (
           </div>
         </div>
 
-        {/* Bottom Status Bar: OK · forecast-benchmark · WARN */}
+        {/* Bottom Status Bar: OK · forecast-benchmark · WARN + Lineage Inspector */}
         <div
           dir="ltr"
           className="pt-3 mt-2 border-t border-stone-200/90 flex items-center justify-between"
         >
-          <button
-            type="button"
-            onClick={() => onNavigateModule('forecast_scenario')}
-            className="px-3 py-0.5 rounded-full bg-[#2D8A4E] text-white font-mono-num text-[12px] font-bold hover:opacity-90 transition-opacity"
-          >
-            OK
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => onNavigateModule('forecast_scenario')}
+              className="px-3 py-0.5 rounded-full bg-[#2D8A4E] text-white font-mono-num text-[12px] font-bold hover:opacity-90 transition-opacity"
+            >
+              OK
+            </button>
+            {onInspectLineage && (
+              <button
+                type="button"
+                onClick={() => onInspectLineage('eia.wpsr.crude_stocks')}
+                className="px-2 py-0.5 rounded-full bg-[#22211F] text-[#F2DA63] font-mono-num text-[11px] font-bold hover:opacity-90 transition-opacity"
+                title="بازرس ردیابی عدد تا منبع خام و تاریخچه بازنگری‌ها"
+              >
+                Lineage
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onNavigateModule('live_wave1_debate')}
+              className="px-2.5 py-0.5 rounded-full bg-[#B83E16] text-white font-mono-num text-[11px] font-bold hover:opacity-90 transition-opacity"
+              title="اتصال زنده موج ۱ (FRED/CFTC/EIA)، جستجوی وب و اتاق مناظره سناریو (gpt-6-luna)"
+            >
+              Live AI & Wave-1
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             <span className="font-mono-num text-[13px] font-medium text-[#1E1D1B]">

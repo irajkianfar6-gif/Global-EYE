@@ -312,3 +312,451 @@ export function computeRealtimeBenchmarkTick(
   };
 }
 
+export interface VintagePoint {
+  vintageId: string;
+  vintageTs: string;
+  value: number;
+  method: string;
+  noteFa: string;
+}
+
+/**
+ * Computes revision statistics across point-in-time vintages for a given observation series
+ * and checks for look-ahead bias relative to a model evaluation origin date.
+ */
+export function computeVintageRevisionStats(
+  vintages: VintagePoint[],
+  forecastOriginIso?: string
+) {
+  if (vintages.length === 0) {
+    return {
+      initialValue: 0,
+      latestValue: 0,
+      netRevision: 0,
+      netRevisionPct: 0,
+      maxAbsRevision: 0,
+      revisionStabilityScore: 10,
+      lookAheadSafe: true,
+    };
+  }
+  const initialValue = vintages[0].value;
+  const latestValue = vintages[vintages.length - 1].value;
+  const netRevision = Number((latestValue - initialValue).toFixed(2));
+  const netRevisionPct =
+    initialValue !== 0 ? Number(((netRevision / Math.abs(initialValue)) * 100).toFixed(2)) : 0;
+
+  let maxAbsRevision = 0;
+  for (let i = 1; i < vintages.length; i++) {
+    const diff = Math.abs(vintages[i].value - vintages[i - 1].value);
+    if (diff > maxAbsRevision) {
+      maxAbsRevision = Number(diff.toFixed(2));
+    }
+  }
+
+  // Stability score out of 10: deducts points for large percentage revisions
+  const absPct = Math.abs(netRevisionPct);
+  const revisionStabilityScore = Math.max(
+    2,
+    Math.min(10, Math.round(10 - absPct * 1.5))
+  );
+
+  const latestTs = vintages[vintages.length - 1].vintageTs;
+  const lookAheadSafe = forecastOriginIso
+    ? new Date(latestTs).getTime() <= new Date(forecastOriginIso).getTime()
+    : true;
+
+  return {
+    initialValue,
+    latestValue,
+    netRevision,
+    netRevisionPct,
+    maxAbsRevision,
+    revisionStabilityScore,
+    lookAheadSafe,
+  };
+}
+
+/**
+ * Evaluates the Human-in-the-Loop (HITL) verification gate for Pattern C (PDF extraction),
+ * Pattern D (OSP LLM extraction), and Tier-3 Early Warning Alerts.
+ */
+export function evaluateHitlQueueGate(params: {
+  pattern: 'C_PDF' | 'D_OSP' | 'TIER3_ALERT';
+  rowSumDelta?: number;
+  independentSourcesCount: number;
+  analystApproved: boolean;
+}): {
+  gateStatus: 'APPROVED' | 'PENDING_HUMAN' | 'BLOCKED';
+  gateLabelFa: string;
+  reasonFa: string;
+} {
+  const { pattern, rowSumDelta = 0, independentSourcesCount, analystApproved } = params;
+
+  if (pattern === 'C_PDF') {
+    const sumOk = Math.abs(rowSumDelta) <= 5;
+    if (!sumOk && !analystApproved) {
+      return {
+        gateStatus: 'BLOCKED',
+        gateLabelFa: 'مسدود (عدم تطابق جمع سطرها)',
+        reasonFa: `اختلاف جمع سطرها با سرجمع جدول (${rowSumDelta} واحد) خارج از تلرانس است و نیاز به بازبینی انسانی دارد.`,
+      };
+    }
+    if (analystApproved || (sumOk && independentSourcesCount >= 1)) {
+      return {
+        gateStatus: 'APPROVED',
+        gateLabelFa: 'تأییدشده در انبار داده',
+        reasonFa: 'کنترل جمع سطرها و ساختار جدول PDF با موفقیت تأیید شد.',
+      };
+    }
+    return {
+      gateStatus: 'PENDING_HUMAN',
+      gateLabelFa: 'در انتظار تأیید تحلیلگر',
+      reasonFa: 'استخراج جدول نیازمند تأیید نهایی تحلیلگر است.',
+    };
+  }
+
+  if (pattern === 'D_OSP') {
+    if (analystApproved) {
+      return {
+        gateStatus: 'APPROVED',
+        gateLabelFa: 'تأیید نهایی تحلیلگر و ثبت در انبار',
+        reasonFa: 'تفاضل OSP پس از تطبیق رسانه‌ای توسط تحلیلگر تأیید شد.',
+      };
+    }
+    if (independentSourcesCount < 2) {
+      return {
+        gateStatus: 'PENDING_HUMAN',
+        gateLabelFa: 'در انتظار منبع دوم و تأیید انسانی',
+        reasonFa: 'طبق الگوی D، استخراج LLM از یک رسانه تا زمان تأیید منبع دوم یا تحلیلگر وارد محاسبه رسمی نمی‌شود.',
+      };
+    }
+    return {
+      gateStatus: 'PENDING_HUMAN',
+      gateLabelFa: 'آماده تأیید نهایی (۲ منبع منطبق)',
+      reasonFa: 'دو منبع خبری مستقل عدد را گزارش کرده‌اند؛ منتظر کلیک تأیید تحلیلگر.',
+    };
+  }
+
+  // TIER3_ALERT
+  if (independentSourcesCount < 2) {
+    return {
+      gateStatus: 'BLOCKED',
+      gateLabelFa: 'مسدود (منبع سطح ۳ بدون پشتیبان)',
+      reasonFa: 'منابع سطح ۳ به تنهایی مجاز به تولید هشدار P0/P1 نیستند؛ حداقل یک منبع مستقل دیگر الزامی است.',
+    };
+  }
+  if (!analystApproved) {
+    return {
+      gateStatus: 'PENDING_HUMAN',
+      gateLabelFa: 'هم‌سنجی دوگانه انجام شد · منتظر انتشار',
+      reasonFa: 'تأیید متقابل انجام شده؛ منتظر مجوز انتشار در مرکز هشدار.',
+    };
+  }
+  return {
+    gateStatus: 'APPROVED',
+    gateLabelFa: 'تأیید و منتشرشده',
+    reasonFa: 'هشدار سطح ۳ پس از تأیید منبع مستقل و تحلیلگر منتشر شد.',
+  };
+}
+
+/**
+ * Converts New York (ET) release schedule to Tehran (IRST, permanent UTC+3:30 since Sept 2022).
+ * EDT (US Summer): UTC-4 -> offset to Tehran is +7 hours 30 minutes.
+ * EST (US Winter): UTC-5 -> offset to Tehran is +8 hours 30 minutes.
+ */
+export function convertNyReleaseToTehran(params: {
+  nyHour24: number;
+  nyMinute: number;
+  isUsDst: boolean;
+  isUsHolidayWeek?: boolean;
+  holidayShiftHours?: number;
+  dayOfWeekFa: string;
+}) {
+  const {
+    nyHour24,
+    nyMinute,
+    isUsDst,
+    isUsHolidayWeek = false,
+    holidayShiftHours = 0.5,
+    dayOfWeekFa,
+  } = params;
+
+  const effectiveNyMinutes =
+    nyHour24 * 60 + nyMinute + (isUsHolidayWeek ? Math.round(holidayShiftHours * 60) : 0);
+  const effectiveNyH = Math.floor(effectiveNyMinutes / 60) % 24;
+  const effectiveNyM = effectiveNyMinutes % 60;
+
+  // Offset in minutes: EDT -> +450 mins (+7:30), EST -> +510 mins (+8:30)
+  const offsetMinutes = isUsDst ? 450 : 510;
+  const totalTehranMinutes = effectiveNyMinutes + offsetMinutes;
+  const dayOverflow = Math.floor(totalTehranMinutes / (24 * 60));
+  const tehranH = Math.floor((totalTehranMinutes % (24 * 60)) / 60);
+  const tehranM = totalTehranMinutes % 60;
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const nyFormatted = `${pad(effectiveNyH)}:${pad(effectiveNyM)} ${isUsDst ? 'EDT' : 'EST'}`;
+  const tehranFormatted = `${pad(tehranH)}:${pad(tehranM)} تهران`;
+
+  const dayMapNext: Record<string, string> = {
+    'دوشنبه': 'سه‌شنبه',
+    'سه‌شنبه': 'چهارشنبه',
+    'چهارشنبه': 'پنج‌شنبه',
+    'پنج‌شنبه': 'جمعه',
+    'جمعه': 'شنبه',
+  };
+
+  let effectiveDayFa = dayOfWeekFa;
+  if (isUsHolidayWeek && dayMapNext[effectiveDayFa]) {
+    effectiveDayFa = dayMapNext[effectiveDayFa];
+  }
+
+  return {
+    nyFormatted,
+    tehranFormatted,
+    tehranHour24: tehranH,
+    tehranMinute: tehranM,
+    effectiveDayFa,
+    dayOverflow,
+    offsetLabelFa: isUsDst ? '+۷:۳۰ ساعت (تابستانی آمریکا EDT)' : '+۸:۳۰ ساعت (زمستانی آمریکا EST)',
+  };
+}
+
+/**
+ * Calculates Organizational Impact: Realized FOB Netback, Daily/Annual Export Revenue,
+ * Fiscal Budget Surplus/Deficit, Breakeven Volume, and Hedging Downside Protection.
+ */
+export function computeOrganizationalImpact(params: {
+  benchmarkDubaiUsd: number;
+  ospDiffUsd: number; // e.g., +1.85 or -0.40
+  vlccFreightUsdBbl: number; // e.g., 2.45 USD/bbl
+  warRiskInsuranceUsdBbl: number; // e.g., 0.55 USD/bbl
+  commercialDiscountUsdBbl: number; // e.g., 4.20 USD/bbl
+  exportVolumeMbd: number; // e.g., 1.65 mb/d
+  budgetTargetVolumeMbd: number; // e.g., 1.50 mb/d
+  fiscalBreakevenUsd: number; // e.g., 76.50 USD/bbl
+  hedgeCoverageRatioPct: number; // 0..100
+  hedgeFloorUsd: number; // e.g., 78.00 USD/bbl
+  downsideBenchmarkDubaiUsd: number; // e.g., 64.00 USD/bbl (Fan chart q5 tail scenario)
+}) {
+  const {
+    benchmarkDubaiUsd,
+    ospDiffUsd,
+    vlccFreightUsdBbl,
+    warRiskInsuranceUsdBbl,
+    commercialDiscountUsdBbl,
+    exportVolumeMbd,
+    budgetTargetVolumeMbd,
+    fiscalBreakevenUsd,
+    hedgeCoverageRatioPct,
+    hedgeFloorUsd,
+    downsideBenchmarkDubaiUsd,
+  } = params;
+
+  const realizedFobNetbackUsd = Number(
+    Math.max(
+      15,
+      benchmarkDubaiUsd +
+        ospDiffUsd -
+        vlccFreightUsdBbl -
+        warRiskInsuranceUsdBbl -
+        commercialDiscountUsdBbl
+    ).toFixed(2)
+  );
+
+  const totalDeductionsUsd = Number(
+    (
+      vlccFreightUsdBbl +
+      warRiskInsuranceUsdBbl +
+      commercialDiscountUsdBbl -
+      ospDiffUsd
+    ).toFixed(2)
+  );
+
+  const dailyRevenueMusd = Number((realizedFobNetbackUsd * exportVolumeMbd).toFixed(2));
+  const annualizedRevenueBusd = Number(
+    ((realizedFobNetbackUsd * exportVolumeMbd * 365) / 1000).toFixed(2)
+  );
+  const budgetAnnualTargetBusd = Number(
+    ((fiscalBreakevenUsd * budgetTargetVolumeMbd * 365) / 1000).toFixed(2)
+  );
+  const fiscalAnnualBalanceBusd = Number(
+    (annualizedRevenueBusd - budgetAnnualTargetBusd).toFixed(2)
+  );
+  const netbackMarginVsBreakevenUsd = Number(
+    (realizedFobNetbackUsd - fiscalBreakevenUsd).toFixed(2)
+  );
+  const requiredBreakevenVolumeMbd =
+    realizedFobNetbackUsd > 0
+      ? Number(((budgetAnnualTargetBusd * 1000) / (realizedFobNetbackUsd * 365)).toFixed(2))
+      : 0;
+
+  // Downside tail stress test (e.g., price drop to downsideBenchmarkDubaiUsd)
+  const downsideUnhedgedNetbackUsd = Number(
+    Math.max(10, downsideBenchmarkDubaiUsd - totalDeductionsUsd).toFixed(2)
+  );
+  const hedgeRatio = Math.max(0, Math.min(100, hedgeCoverageRatioPct)) / 100;
+  const hedgedPortionNetbackUsd = Math.max(
+    downsideUnhedgedNetbackUsd,
+    hedgeFloorUsd - totalDeductionsUsd
+  );
+  const effectiveDownsideNetbackUsd = Number(
+    (
+      hedgeRatio * hedgedPortionNetbackUsd +
+      (1 - hedgeRatio) * downsideUnhedgedNetbackUsd
+    ).toFixed(2)
+  );
+
+  const downsideUnhedgedAnnualBusd = Number(
+    ((downsideUnhedgedNetbackUsd * exportVolumeMbd * 365) / 1000).toFixed(2)
+  );
+  const downsideHedgedAnnualBusd = Number(
+    ((effectiveDownsideNetbackUsd * exportVolumeMbd * 365) / 1000).toFixed(2)
+  );
+  const hedgingProtectionGainBusd = Number(
+    (downsideHedgedAnnualBusd - downsideUnhedgedAnnualBusd).toFixed(2)
+  );
+
+  return {
+    realizedFobNetbackUsd,
+    totalDeductionsUsd,
+    dailyRevenueMusd,
+    annualizedRevenueBusd,
+    budgetAnnualTargetBusd,
+    fiscalAnnualBalanceBusd,
+    netbackMarginVsBreakevenUsd,
+    requiredBreakevenVolumeMbd,
+    downsideUnhedgedNetbackUsd,
+    effectiveDownsideNetbackUsd,
+    downsideUnhedgedAnnualBusd,
+    downsideHedgedAnnualBusd,
+    hedgingProtectionGainBusd,
+  };
+}
+
+export interface FiveLayerQualityResult {
+  seriesId: string;
+  sourceCode: 'EIA' | 'FRED' | 'CFTC';
+  tier: 1 | 2 | 3;
+  layer1SchemaOk: boolean;
+  layer2FreshnessOk: boolean;
+  ageDays: number;
+  layer3ZScore: number;
+  layer3Status: 'NORMAL' | 'ANOMALY_WARN' | 'ANOMALY_CRITICAL';
+  layer4ReconcileDelta: number;
+  layer4ReconcileOk: boolean;
+  layer5CompositeScore: number;
+  warehouseGate: 'PASS_AUTO_WAREHOUSE' | 'PASS_WITH_WARN_TAG' | 'QUARANTINE_HITL';
+  summaryFa: string;
+}
+
+/**
+ * Runs the 5-Layer Data Quality & Anomaly Engine on a live Wave-1 observation series.
+ */
+export function evaluateFiveLayerQualityGate(params: {
+  seriesId: string;
+  sourceCode: 'EIA' | 'FRED' | 'CFTC';
+  tier: 1 | 2 | 3;
+  latestValue: number;
+  latestDateIso: string;
+  referenceNowIso?: string;
+  slaMaxAgeDays: number;
+  rollingMean: number;
+  rollingStdDev: number;
+  sha256RawHash: string;
+  crossSourceDelta?: number;
+  crossSourceMaxTolerance?: number;
+}): FiveLayerQualityResult {
+  const {
+    seriesId,
+    sourceCode,
+    tier,
+    latestValue,
+    latestDateIso,
+    referenceNowIso,
+    slaMaxAgeDays,
+    rollingMean,
+    rollingStdDev,
+    sha256RawHash,
+    crossSourceDelta = 0,
+    crossSourceMaxTolerance = 10,
+  } = params;
+
+  // Layer 1: Schema & SHA-256 Lineage check
+  const parsedObsTs = Date.parse(latestDateIso);
+  const layer1SchemaOk =
+    Number.isFinite(latestValue) &&
+    !Number.isNaN(parsedObsTs) &&
+    typeof sha256RawHash === 'string' &&
+    sha256RawHash.length >= 16;
+
+  // Layer 2: Freshness SLA
+  const nowTs = referenceNowIso ? Date.parse(referenceNowIso) : Date.now();
+  const ageDays = Number.isNaN(parsedObsTs)
+    ? 999
+    : Math.max(0, Number(((nowTs - parsedObsTs) / (1000 * 60 * 60 * 24)).toFixed(1)));
+  const layer2FreshnessOk = ageDays <= slaMaxAgeDays;
+
+  // Layer 3: Statistical Z-Score Anomaly Detection
+  const safeStd = rollingStdDev > 0 ? rollingStdDev : 1;
+  const layer3ZScore = Number(((latestValue - rollingMean) / safeStd).toFixed(2));
+  const absZ = Math.abs(layer3ZScore);
+  const layer3Status: 'NORMAL' | 'ANOMALY_WARN' | 'ANOMALY_CRITICAL' =
+    absZ >= 3.0 ? 'ANOMALY_CRITICAL' : absZ >= 2.0 ? 'ANOMALY_WARN' : 'NORMAL';
+
+  // Layer 4: Cross-Source Reconciliation
+  const layer4ReconcileDelta = Number(crossSourceDelta.toFixed(2));
+  const layer4ReconcileOk = Math.abs(layer4ReconcileDelta) <= crossSourceMaxTolerance;
+
+  // Layer 5: Composite Quality Score (0..100) & Gate Decision
+  const freshnessScore = layer2FreshnessOk
+    ? 15
+    : Math.max(3, Math.round(15 - (ageDays - slaMaxAgeDays) * 2));
+  const consistencyScore =
+    layer4ReconcileOk && layer3Status === 'NORMAL'
+      ? 15
+      : layer3Status === 'ANOMALY_WARN'
+      ? 11
+      : 6;
+  const revisionStabilityScore = layer1SchemaOk ? 9 : 3;
+
+  const layer5CompositeScore = computeDataQualityScore({
+    tier,
+    freshnessScore,
+    consistencyScore,
+    revisionStabilityScore,
+  });
+
+  let warehouseGate: 'PASS_AUTO_WAREHOUSE' | 'PASS_WITH_WARN_TAG' | 'QUARANTINE_HITL' =
+    'PASS_AUTO_WAREHOUSE';
+  if (!layer1SchemaOk || layer3Status === 'ANOMALY_CRITICAL') {
+    warehouseGate = 'QUARANTINE_HITL';
+  } else if (!layer2FreshnessOk || !layer4ReconcileOk || layer3Status === 'ANOMALY_WARN') {
+    warehouseGate = 'PASS_WITH_WARN_TAG';
+  }
+
+  const summaryFa =
+    warehouseGate === 'PASS_AUTO_WAREHOUSE'
+      ? `تأیید خودکار ۵ لایه (امتیاز ${layer5CompositeScore}/100 · Z=${layer3ZScore})`
+      : warehouseGate === 'PASS_WITH_WARN_TAG'
+      ? `ثبت با برچسب هشدار (امتیاز ${layer5CompositeScore}/100 · Z=${layer3ZScore})`
+      : `قرنطینه در صف تأیید انسانی (امتیاز ${layer5CompositeScore}/100 · Z=${layer3ZScore})`;
+
+  return {
+    seriesId,
+    sourceCode,
+    tier,
+    layer1SchemaOk,
+    layer2FreshnessOk,
+    ageDays,
+    layer3ZScore,
+    layer3Status,
+    layer4ReconcileDelta,
+    layer4ReconcileOk,
+    layer5CompositeScore,
+    warehouseGate,
+    summaryFa,
+  };
+}
+
+
+

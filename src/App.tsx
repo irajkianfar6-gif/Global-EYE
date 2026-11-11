@@ -21,6 +21,9 @@ import {
   X,
   ArrowRight,
   Layers,
+  GitCommit,
+  DollarSign,
+  Sparkles,
 } from 'lucide-react';
 import {
   CockpitScreenshotView1,
@@ -43,6 +46,11 @@ import {
   ReportsBriefsDeepPage,
   DataGovernanceDeepPage,
 } from './components/GovernanceAndReportsPages';
+import {
+  LineageVintageModal,
+  OrganizationalImpactDeepPage,
+} from './components/GovernanceAndImpactModules';
+import { LiveWave1AndDebateHubPage } from './components/LiveBackendAndDebatePages';
 import {
   SituationRoomMap,
   REGIONAL_CALLOUTS,
@@ -74,6 +82,17 @@ export default function App() {
   const [activeMapLayer, setActiveMapLayer] = useState<'trade_shocks' | 'chokepoints' | 'stocks'>(
     'trade_shocks'
   );
+  const [lineageModalState, setLineageModalState] = useState<{
+    open: boolean;
+    seriesKey: string;
+  }>({
+    open: false,
+    seriesKey: 'eia.wpsr.crude_stocks',
+  });
+
+  const handleOpenLineage = (seriesKey = 'eia.wpsr.crude_stocks') => {
+    setLineageModalState({ open: true, seriesKey });
+  };
 
   const unacknowledgedCount = alerts.filter((a) => !a.acknowledged).length;
 
@@ -170,10 +189,31 @@ export default function App() {
     },
     {
       id: 'rail-sources',
-      labelFa: 'کاتالوگ ۲۵۶ منبع داده و ۱۲ کانکتور موج ۱',
+      labelFa: 'حاکمیت داده: صف تأیید انسانی (HITL)، تقویم انتشار و ۲۵۶ منبع',
       icon: ExternalLink,
       isActive: activePage === 'data_governance',
       onClick: () => setActivePage('data_governance'),
+    },
+    {
+      id: 'rail-org-impact',
+      labelFa: 'ماژول اثر بر سازمان و خالص صادرات (FOB Netback & Hedging)',
+      icon: DollarSign,
+      isActive: activePage === 'org_impact',
+      onClick: () => setActivePage('org_impact'),
+    },
+    {
+      id: 'rail-live-ai',
+      labelFa: 'سرور زنده موج ۱ (FRED/CFTC/EIA)، جستجوی وب و اتاق مناظره سناریو (gpt-6-luna)',
+      icon: Sparkles,
+      isActive: activePage === 'live_wave1_debate',
+      onClick: () => setActivePage('live_wave1_debate'),
+    },
+    {
+      id: 'rail-lineage',
+      labelFa: 'بازرس ردیابی عدد تا منبع خام و تاریخچه بازنگری‌ها (Lineage & Vintage)',
+      icon: GitCommit,
+      isActive: lineageModalState.open,
+      onClick: () => handleOpenLineage('eia.wpsr.crude_stocks'),
     },
     {
       id: 'rail-globe',
@@ -190,20 +230,6 @@ export default function App() {
             : 'trade_shocks'
         );
       },
-    },
-    {
-      id: 'rail-table',
-      labelFa: 'جدول کامل اعداد کلیدی WPSR',
-      icon: Table,
-      isActive: false,
-      onClick: () => setActivePage('eia_stocks'),
-    },
-    {
-      id: 'rail-triangulation',
-      labelFa: 'مثلث‌سازی سه روش شوک عرضه (همسو / ناهمسو)',
-      icon: GitBranch,
-      isActive: false,
-      onClick: () => setActivePage('shock_decomposition'),
     },
     {
       id: 'rail-regions',
@@ -299,6 +325,7 @@ export default function App() {
         {activePage === 'cockpit' ? (
           <SituationRoomMap
             onNavigateModule={(page) => setActivePage(page)}
+            onInspectLineage={handleOpenLineage}
             onSelectRegion={handleSelectRegion}
             selectedRegionId={selectedRegionId}
             searchQuery={searchQuery}
@@ -323,10 +350,22 @@ export default function App() {
                     <ArrowRight className="w-3.5 h-3.5" />
                     <span>بازگشت به نقشه تمام‌صفحه (Oil Situation Room)</span>
                   </button>
-                  <span className="text-stone-300">|</span>
-                  <span className="text-sm font-extrabold text-[#1E1D1B]">
-                    میز کار تخصصی اتاق وضعیت نفت
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenLineage('eia.wpsr.crude_stocks')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#22211F] hover:bg-stone-800 text-[#F2DA63] text-xs font-bold transition-colors"
+                  >
+                    <GitCommit className="w-3.5 h-3.5" />
+                    <span>ردیابی عدد تا منبع خام (Lineage & Vintage)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePage('live_wave1_debate')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#15803D] hover:bg-[#166534] text-white text-xs font-bold transition-colors"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>سرور زنده موج ۱، وب و مناظره (gpt-6-luna)</span>
+                  </button>
                 </div>
 
                 {/* Top-Right Real-Time Price Ticker (WTI, Brent, Dubai) */}
@@ -347,8 +386,10 @@ export default function App() {
                     { id: 'osp_crack_margins', label: 'منحنی آتی، OSP و کرک' },
                     { id: 'cot_macro_sentiment', label: 'COT و کلان مالی' },
                     { id: 'geopolitics', label: 'ریسک و گلوگاه‌ها' },
+                    { id: 'org_impact', label: 'اثر بر سازمان (FOB Netback)' },
+                    { id: 'live_wave1_debate', label: 'موج ۱ زنده + وب + مناظره (gpt-6-luna)' },
                     { id: 'reports_briefs', label: 'بریف‌های فارسی' },
-                    { id: 'data_governance', label: '۲۵۶ منبع داده' },
+                    { id: 'data_governance', label: 'حاکمیت داده (HITL و تقویم)' },
                     { id: 'classic_cockpits', label: '۵ نمای کلاسیک' },
                   ] as const
                 ).map((t) => (
@@ -376,8 +417,24 @@ export default function App() {
             {activePage === 'osp_crack_margins' && <OspCrackMarginsDeepPage />}
             {activePage === 'cot_macro_sentiment' && <CotMacroSentimentDeepPage />}
             {activePage === 'geopolitics' && <GeopoliticsChokepointsDeepPage />}
-            {activePage === 'reports_briefs' && <ReportsBriefsDeepPage />}
-            {activePage === 'data_governance' && <DataGovernanceDeepPage />}
+            {activePage === 'org_impact' && (
+              <OrganizationalImpactDeepPage onInspectLineage={handleOpenLineage} />
+            )}
+            {activePage === 'live_wave1_debate' && (
+              <LiveWave1AndDebateHubPage onInspectLineage={handleOpenLineage} />
+            )}
+            {activePage === 'reports_briefs' && (
+              <ReportsBriefsDeepPage
+                onInspectLineage={handleOpenLineage}
+                onNavigateModule={(p) => setActivePage(p)}
+              />
+            )}
+            {activePage === 'data_governance' && (
+              <DataGovernanceDeepPage
+                onInspectLineage={handleOpenLineage}
+                onNavigateModule={(p) => setActivePage(p)}
+              />
+            )}
 
             {/* Classic 5 Cockpit Screenshots Switcher (preserved for complete access) */}
             {activePage === 'classic_cockpits' && (
@@ -453,6 +510,7 @@ export default function App() {
       <SituationRoomRightPanel
         onNavigateModule={(page) => setActivePage(page)}
         onOpenQuestionModal={setActiveQuestionId}
+        onInspectLineage={handleOpenLineage}
       />
 
       {/* MODAL 1: Early-Warning Alerts Center */}
@@ -684,6 +742,13 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* MODAL 4: Lineage & Vintage Drill-Down Inspector */}
+      <LineageVintageModal
+        isOpen={lineageModalState.open}
+        initialSeriesKey={lineageModalState.seriesKey}
+        onClose={() => setLineageModalState((prev) => ({ ...prev, open: false }))}
+      />
     </div>
   );
 }
