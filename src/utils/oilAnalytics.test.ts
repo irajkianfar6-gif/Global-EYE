@@ -17,7 +17,9 @@ import {
   convertNyReleaseToTehran,
   computeOrganizationalImpact,
   evaluateFiveLayerQualityGate,
+  parseCatalogCsvText,
 } from './oilAnalytics';
+import fs from 'node:fs';
 
 test('toPersianDigits converts ASCII digits to Persian numerals', () => {
   assert.equal(toPersianDigits('2026-10-30'), '۲۰۲۶-۱۰-۳۰');
@@ -299,6 +301,20 @@ test('evaluateFiveLayerQualityGate validates 5-layer quality and anomaly engine 
   assert.equal(quarantineGate.layer3Status, 'ANOMALY_CRITICAL');
   assert.equal(quarantineGate.warehouseGate, 'QUARANTINE_HITL');
 });
+
+test('parseCatalogCsvText parses all 256 sources and identifies 117 free no-API sources from catalog CSV', () => {
+  const csvContent = fs.readFileSync(
+    'public/assets/aistudio/Oil_Market_Platform_Data_FA.xlsx_-_______________50332a16.csv',
+    'utf8'
+  );
+  const parsed = parseCatalogCsvText(csvContent);
+  assert.equal(parsed.length, 256);
+  const freeNoApi = parsed.filter((r) => r.isFreeAndNoApi);
+  const freeAny = parsed.filter((r) => r.isFreeAny);
+  assert.equal(freeNoApi.length, 117);
+  assert.equal(freeAny.length, 153);
+});
+
 
 
 

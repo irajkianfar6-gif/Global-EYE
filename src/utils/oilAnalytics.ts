@@ -758,5 +758,90 @@ export function evaluateFiveLayerQualityGate(params: {
   };
 }
 
+export interface CatalogSourceRecord {
+  rowNumber: number;
+  categoryFa: string;
+  subcategoryFa: string;
+  sourceName: string;
+  publisherOrNoteFa: string;
+  websiteUrl: string;
+  dataDescriptionFa: string;
+  frequencyFa: string;
+  accessDetailsFa: string;
+  accessTypeFa: string; // 'رایگان' | 'پولی' | 'ترکیبی' | 'ثبت‌نام' | 'سایر'
+  hasApiFa: string; // 'بله' | 'خیر'
+  credibilityTier: 1 | 2 | 3;
+  verificationStatusFa: string;
+  isFreeAndNoApi: boolean;
+  isFreeAny: boolean;
+}
+
+export function parseCsvLineFields(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      fields.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
+/**
+ * Parses the 256-source Oil Market Platform CSV catalog into structured records
+ * and flags sources that are Free (`نوع دسترسی === 'رایگان'`) and require no API (`API === 'خیر'`).
+ */
+export function parseCatalogCsvText(csvText: string): CatalogSourceRecord[] {
+  const lines = csvText.split(/\r?\n/);
+  const records: CatalogSourceRecord[] = [];
+
+  for (const rawLine of lines) {
+    if (!/^\d+(\.0)?,/.test(rawLine.trim())) continue;
+    const cols = parseCsvLineFields(rawLine);
+    if (cols.length < 13) continue;
+
+    const rowNumber = Math.round(parseFloat(cols[0]) || 0);
+    if (rowNumber <= 0) continue;
+
+    const accessTypeFa = cols[9] || '';
+    const hasApiFa = cols[10] || '';
+    const rawTier = Math.round(parseFloat(cols[11]) || 2);
+    const credibilityTier: 1 | 2 | 3 =
+      rawTier === 1 ? 1 : rawTier === 3 ? 3 : 2;
+
+    const isFreeAny = accessTypeFa === 'رایگان';
+    const isFreeAndNoApi = accessTypeFa === 'رایگان' && hasApiFa === 'خیر';
+
+    records.push({
+      rowNumber,
+      categoryFa: cols[1] || '',
+      subcategoryFa: cols[2] || '',
+      sourceName: cols[3] || '',
+      publisherOrNoteFa: cols[4] || '',
+      websiteUrl: cols[5] || '',
+      dataDescriptionFa: cols[6] || '',
+      frequencyFa: cols[7] || '',
+      accessDetailsFa: cols[8] || '',
+      accessTypeFa,
+      hasApiFa,
+      credibilityTier,
+      verificationStatusFa: cols[12] || '',
+      isFreeAndNoApi,
+      isFreeAny,
+    });
+  }
+
+  return records;
+}
+
+
 
 

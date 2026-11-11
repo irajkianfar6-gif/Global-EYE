@@ -17,6 +17,7 @@ import {
   HitlVerificationQueuePanel,
   InteractiveReleaseCalendarPanel,
 } from './GovernanceAndImpactModules';
+import { KeylessCatalogConnectorHub } from './KeylessCatalogConnectorHub';
 import { DeepPageId } from './CockpitViews';
 
 interface GovernanceReportsProps {
@@ -399,6 +400,11 @@ export const DataGovernanceDeepPage: React.FC<GovernanceReportsProps> = ({
           onNavigateModule={onNavigateModule}
           onInspectLineage={(seriesKey) => onInspectLineage?.(seriesKey)}
         />
+      )}
+
+      {/* SECTION C-0: 117 Free & No-API Sources Live Connector Hub (from 256 Catalog CSV) */}
+      {(activeGovSection === 'all' || activeGovSection === 'catalog_256') && (
+        <KeylessCatalogConnectorHub />
       )}
 
       {/* SECTION C: Wave 1 Connectors Table (12 Free Official Sources) */}

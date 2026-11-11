@@ -21,6 +21,7 @@ import {
   Printer,
 } from 'lucide-react';
 import { toPersianDigits } from '../utils/oilAnalytics';
+import { KeylessCatalogConnectorHub } from './KeylessCatalogConnectorHub';
 
 export interface LiveSeriesItem {
   seriesId: string;
@@ -575,6 +576,9 @@ export const LiveWave1AndDebateHubPage: React.FC<{
           </div>
         )}
       </div>
+
+      {/* Section 1.5: 117 Free & No-API Sources Live Connector Hub (from 256 Catalog CSV) */}
+      <KeylessCatalogConnectorHub />
 
       {/* Section 2: Scenario Debate Room (Bull vs. Bear Multi-Agent Debate) */}
       <div className="bg-[#FAF9F5] border border-[#D4D1C8] rounded-sm p-5 shadow-xs space-y-4">
